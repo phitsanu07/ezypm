@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>เข้าสู่ระบบ · GridWork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/styles.css">
+<style>
+  body {
+    background: #F4F2EC;
+    background-image:
+      radial-gradient(at 12% 8%, rgba(124,92,255,0.16) 0px, transparent 50%),
+      radial-gradient(at 90% 80%, rgba(255,120,73,0.14) 0px, transparent 55%),
+      radial-gradient(at 90% 10%, rgba(58,134,255,0.10) 0px, transparent 45%);
+    min-height: 100vh;
+    display: grid; place-items: center;
+    padding: 24px;
+    font-family: var(--font-sans);
+  }
+  .login-wrap {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    max-width: 980px;
+    width: 100%;
+    min-height: 560px;
+    background: var(--surface);
+    border-radius: 18px;
+    box-shadow: 0 24px 64px rgba(20,18,12,0.18), 0 0 0 1px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  @media (max-width: 760px) {
+    .login-wrap { grid-template-columns: 1fr; min-height: auto; }
+    .login-brand { padding: 28px 28px 0; }
+  }
+  .login-brand {
+    background: linear-gradient(155deg, #1A1916 0%, #2A2530 55%, #5836CC 100%);
+    color: #fff;
+    padding: 44px 40px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-brand::before {
+    content: ""; position: absolute; inset: -40% -20% auto auto;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(255,120,73,0.45) 0%, transparent 70%);
+  }
+  .login-brand::after {
+    content: ""; position: absolute; left: -10%; bottom: -20%;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(124,92,255,0.55) 0%, transparent 70%);
+  }
+  .login-logo {
+    display: inline-flex; align-items: center; gap: 12px;
+    position: relative; z-index: 2;
+  }
+  .login-logo-mark {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: linear-gradient(135deg, #7C5CFF, #FF7849);
+    display: grid; place-items: center;
+    color: #fff; font-size: 18px; font-weight: 800;
+  }
+  .login-logo-name { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .login-brand h1 {
+    margin: 0 0 12px;
+    font-size: 30px; font-weight: 800; line-height: 1.15;
+    letter-spacing: -0.02em;
+    position: relative; z-index: 2;
+  }
+  .login-brand p {
+    margin: 0;
+    font-size: 14px; line-height: 1.55;
+    color: rgba(255,255,255,0.78);
+    max-width: 36ch;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    position: relative; z-index: 2;
+  }
+  .login-features {
+    list-style: none; padding: 0; margin: 28px 0 0;
+    display: grid; gap: 12px;
+    position: relative; z-index: 2;
+  }
+  .login-features li {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: rgba(255,255,255,0.85);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+  .login-features .check {
+    display: inline-grid; place-items: center;
+    width: 22px; height: 22px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: #3DBE8B;
+    font-size: 13px;
+  }
+  .login-form {
+    padding: 56px 48px 40px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+  }
+  .login-form h2 {
+    margin: 0 0 6px;
+    font-size: 22px; font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .login-form .sub {
+    margin: 0 0 28px;
+    font-size: 13.5px;
+    color: var(--ink-3);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .field input {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--line-2);
+    border-radius: 9px;
+    font-size: 14px;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.12s, box-shadow 0.12s;
+    box-sizing: border-box;
+  }
+  .field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(124,92,255,0.15);
+  }
+  .field-pw { position: relative; }
+  .field-pw .toggle {
+    position: absolute; right: 10px; top: 30px;
+    background: transparent; border: 0;
+    font-size: 12px; color: var(--ink-3); cursor: pointer;
+    padding: 6px 8px; border-radius: 5px;
+  }
+  .field-pw .toggle:hover { background: var(--bg); color: var(--ink); }
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 4px 0 22px;
+  }
+  .remember {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: var(--ink-2);
+    cursor: pointer;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+  .remember input { accent-color: var(--accent); }
+  .forgot {
+    font-size: 12.5px; color: var(--accent);
+    text-decoration: none; font-weight: 500;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+  .forgot:hover { text-decoration: underline; }
+  .login-submit {
+    width: 100%;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #7C5CFF 0%, #3A86FF 100%);
+    color: #fff;
+    border: 0; border-radius: 10px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(124,92,255,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.08s, box-shadow 0.18s;
+  }
+  .login-submit:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(124,92,255,0.45); }
+  .login-submit:active { transform: translateY(0); }
+  .login-error {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    background: #FFE0E1;
+    color: #A1262A;
+    border-radius: 8px;
+    font-size: 12.5px;
+    border: 1px solid #FFC0C2;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    display: none;
+  }
+  .login-error.show { display: block; }
+  .demo {
+    margin-top: 24px;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px dashed var(--line-2);
+    border-radius: 9px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+  .demo strong { color: var(--ink); }
+  .demo .creds {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 14px;
+    font-family: var(--font-mono);
+    color: var(--ink-2);
+    font-size: 11px;
+  }
+  .demo .creds button {
+    background: transparent; border: 0;
+    color: var(--ink-2);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 0;
+    text-align: left;
+    display: block;
+    width: 100%;
+  }
+  .demo .creds button:hover { color: var(--accent); }
+  .demo .creds b { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="login-wrap">
+    <aside class="login-brand">
+      <div>
+        <div class="login-logo">
+          <span class="login-logo-mark">▦</span>
+          <span class="login-logo-name">GridWork</span>
+        </div>
+      </div>
+      <div>
+        <h1>บริหารโปรเจกต์<br/>ในมุมมองเดียว</h1>
+        <p>ระบบจัดการ portfolio สำหรับทีม IT — ดูสถานะ Requirement → Go Live ของทุก project พร้อมกัน</p>
+        <ul class="login-features">
+          <li><span class="check">✓</span>มุมมองตารางแบบ spreadsheet, แก้ไขในเซลล์</li>
+          <li><span class="check">✓</span>จัดกลุ่ม Project ใหญ่ → Sub-project</li>
+          <li><span class="check">✓</span>ติดตาม SDLC: Requirement, Spec, Dev, Test, UAT, Go Live</li>
+        </ul>
+      </div>
+      <div style="position: relative; z-index: 2; font-size: 11px; color: rgba(255,255,255,0.55);">
+        © 2026 Boonthavorn IT · Internal Tool
+      </div>
+    </aside>
+
+    <main class="login-form">
+      <h2>เข้าสู่ระบบ</h2>
+      <p class="sub">ลงชื่อเข้าใช้ด้วยบัญชีของบริษัท</p>
+
+      <form id="loginForm">
+        <div class="login-error" id="errBox"></div>
+        <div class="field">
+          <label for="email">อีเมล / Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@boonthavorn.com" />
+        </div>
+        <div class="field field-pw">
+          <label for="password">รหัสผ่าน / Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" />
+          <button type="button" class="toggle" id="togglePw">แสดง</button>
+        </div>
+        <div class="row">
+          <label class="remember"><input type="checkbox" checked /> จดจำการเข้าสู่ระบบ</label>
+          <a href="#" class="forgot">ลืมรหัสผ่าน?</a>
+        </div>
+        <button type="submit" class="login-submit">เข้าสู่ระบบ → Sign in</button>
+      </form>
+
+      <div class="demo">
+        <strong>บัญชีทดสอบ — คลิกเพื่อกรอกอัตโนมัติ</strong>
+        <div class="creds" id="demoCreds"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="src/auth.js"></script>
+  <script>
+    // If already logged in, redirect
+    const existing = window.Auth.getSession();
+    if (existing) {
+      window.location.replace("GridWork.html");
+    }
+
+    const form = document.getElementById("loginForm");
+    const errBox = document.getElementById("errBox");
+    const togglePw = document.getElementById("togglePw");
+    const pwField = document.getElementById("password");
+    const emailField = document.getElementById("email");
+
+    togglePw.addEventListener("click", () => {
+      const isPw = pwField.type === "password";
+      pwField.type = isPw ? "text" : "password";
+      togglePw.textContent = isPw ? "ซ่อน" : "แสดง";
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      errBox.classList.remove("show");
+      const r = window.Auth.login(emailField.value, pwField.value);
+      if (!r.ok) {
+        errBox.textContent = r.error;
+        errBox.classList.add("show");
+        return;
+      }
+      const next = new URLSearchParams(location.search).get("next");
+      window.location.href = next || "GridWork.html";
+    });
+
+    // Demo creds
+    const demos = [
+      { label: "Admin",   email: "admin@boonthavorn.com", pw: "admin123" },
+      { label: "Editor",  email: "anan@boonthavorn.com",  pw: "anan123" },
+      { label: "Editor",  email: "kong@boonthavorn.com",  pw: "kong123" },
+      { label: "Viewer",  email: "fern@boonthavorn.com",  pw: "fern123" },
+    ];
+    const demoBox = document.getElementById("demoCreds");
+    demos.forEach(d => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.innerHTML = `<b>${d.label}</b> · ${d.email}`;
+      btn.addEventListener("click", () => {
+        emailField.value = d.email;
+        pwField.value = d.pw;
+        pwField.focus();
+      });
+      demoBox.appendChild(btn);
+    });
+  </script>
+</body>
+</html>

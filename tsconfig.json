@@ -25,6 +25,6 @@
     },
     "types": ["node"]
   },
-  "include": ["src/**/*", "tests/**/*", "prisma/**/*.ts"],
-  "exclude": ["node_modules", "dist", "build"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "build", "src/frontend/_design-reference"]
 }

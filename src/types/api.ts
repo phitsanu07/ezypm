@@ -1,12 +1,28 @@
-import type { Project, ProjectWithCounts, Task, TaskWithAssignee, User } from "./domain";
-import type { TaskPriority, TaskStatus } from "./enums";
+import type {
+  Board,
+  BoardWithMeta,
+  PortfolioPayload,
+  Profile,
+  Project,
+  ProjectWithSubs,
+  SubProject,
+  SubProjectWithRelations,
+} from "./domain";
+import type {
+  ProjectType,
+  SubProjectPriority,
+  SubProjectStatus,
+  UserRole,
+  UserStatus,
+} from "./enums";
 
-export interface ApiSuccess<T> {
+// ===== Envelope =====
+export interface ApiOk<T> {
   ok: true;
   data: T;
 }
 
-export interface ApiError {
+export interface ApiErr {
   ok: false;
   error: {
     code: string;
@@ -15,85 +31,155 @@ export interface ApiError {
   };
 }
 
-export type ApiResponse<T> = ApiSuccess<T> | ApiError;
+export type ApiResponse<T> = ApiOk<T> | ApiErr;
 
-export interface PageMeta {
-  total: number;
-  page: number;
-  pageSize: number;
+// ===== Auth & me =====
+export interface MeResponse {
+  profile: Profile;
+  boards: BoardWithMeta[];
 }
 
-export interface Paginated<T> {
-  items: T[];
-  meta: PageMeta;
-}
-
-// ----- Projects -----
-export interface CreateProjectInput {
+// ===== Boards =====
+export interface CreateBoardInput {
   name: string;
-  description?: string | null;
+  nameTh?: string | null;
+  icon?: string;
   color?: string;
+  memberIds?: string[];
+}
+
+export interface UpdateBoardInput {
+  name?: string;
+  nameTh?: string | null;
+  icon?: string;
+  color?: string;
+}
+
+export interface SetBoardMembersInput {
+  memberIds: string[];
+}
+
+export type ListBoardsResponse = BoardWithMeta[];
+export type GetBoardResponse = BoardWithMeta;
+export type GetPortfolioResponse = PortfolioPayload;
+export type CreateBoardResponse = Board;
+export type UpdateBoardResponse = Board;
+
+// ===== Projects =====
+export interface CreateProjectInput {
+  boardId: string;
+  name: string;
+  nameTh?: string | null;
+  icon?: string;
+  color?: string;
+  type?: ProjectType;
 }
 
 export interface UpdateProjectInput {
   name?: string;
-  description?: string | null;
+  nameTh?: string | null;
+  icon?: string;
   color?: string;
-}
-
-export type ListProjectsResponse = ProjectWithCounts[];
-export type GetProjectResponse = Project;
-export type CreateProjectResponse = Project;
-export type UpdateProjectResponse = Project;
-
-// ----- Tasks -----
-export interface CreateTaskInput {
-  projectId: string;
-  title: string;
-  description?: string | null;
-  status?: TaskStatus;
-  priority?: TaskPriority;
-  assigneeId?: string | null;
-  dueDate?: string | null;
-}
-
-export interface UpdateTaskInput {
-  title?: string;
-  description?: string | null;
-  status?: TaskStatus;
-  priority?: TaskPriority;
-  assigneeId?: string | null;
-  dueDate?: string | null;
+  type?: ProjectType;
   position?: number;
 }
 
-/** Body for POST /api/projects/:id/tasks/reorder — used by drag-and-drop in GridWork. */
-export interface ReorderTasksInput {
-  /** Updated ordering. The backend writes `position` in order and may update `status`. */
-  updates: Array<{
-    id: string;
-    status: TaskStatus;
-    position: number;
-  }>;
+export type CreateProjectResponse = Project;
+export type UpdateProjectResponse = Project;
+export type GetProjectResponse = ProjectWithSubs;
+
+// ===== Sub-projects =====
+export interface CreateSubProjectInput {
+  projectId: string;
+  name: string;
+  nameTh?: string | null;
+  icon?: string;
+  leadId?: string | null;
+  teamIds?: string[];
+  status?: SubProjectStatus;
+  priority?: SubProjectPriority;
+  due?: string | null;
+  progress?: number;
+  quarter?: string | null;
+  tags?: string[];
 }
 
-export type ListTasksResponse = TaskWithAssignee[];
-export type GetTaskResponse = TaskWithAssignee;
-export type CreateTaskResponse = TaskWithAssignee;
-export type UpdateTaskResponse = TaskWithAssignee;
-export type ReorderTasksResponse = TaskWithAssignee[];
-
-// ----- Users -----
-export type ListUsersResponse = User[];
-
-// ----- Board (the GridWork view payload) -----
-export interface BoardColumn {
-  status: TaskStatus;
-  tasks: TaskWithAssignee[];
+/** Cell-level patch from the grid. All fields optional — only changed cell goes through. */
+export interface UpdateSubProjectInput {
+  name?: string;
+  nameTh?: string | null;
+  icon?: string;
+  leadId?: string | null;
+  teamIds?: string[];
+  status?: SubProjectStatus;
+  priority?: SubProjectPriority;
+  due?: string | null;
+  progress?: number;
+  quarter?: string | null;
+  tags?: string[];
+  position?: number;
 }
 
-export interface BoardResponse {
-  project: Project;
-  columns: BoardColumn[];
-  members: User[];
+/** Drag-and-drop reorder payload. May move a row to a different project. */
+export interface ReorderSubProjectInput {
+  targetProjectId: string;
+  position: number;
+}
+
+export type CreateSubProjectResponse = SubProjectWithRelations;
+export type UpdateSubProjectResponse = SubProjectWithRelations;
+export type GetSubProjectResponse = SubProjectWithRelations;
+export type DeleteResponse = { id: string };
+
+// ===== Profiles / users (admin) =====
+export interface InviteUserInput {
+  email: string;
+  name: string;
+  nameTh?: string;
+  role: UserRole;
+  color?: string;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  nameTh?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  color?: string;
+}
+
+export type ListUsersResponse = Profile[];
+
+// ===== AI (Gemini-backed Express endpoints) =====
+export interface SummarizeBoardInput {
+  boardId: string;
+}
+
+export interface SummarizeBoardResponse {
+  summary: string;          // Markdown
+  highlights: string[];     // top 3 things to focus on
+  risks: string[];          // overdue / blocked / stuck
+}
+
+export interface SuggestNextStepInput {
+  subProjectId: string;
+}
+
+export interface SuggestNextStepResponse {
+  suggestion: string;
+  confidence: "low" | "medium" | "high";
+}
+
+// ===== Realtime channel hints (Supabase) =====
+export type RealtimeEventKind =
+  | "subproject.upsert"
+  | "subproject.delete"
+  | "project.upsert"
+  | "project.delete"
+  | "board.upsert";
+
+export interface RealtimeEvent<T = unknown> {
+  kind: RealtimeEventKind;
+  boardId: string;
+  payload: T;
 }

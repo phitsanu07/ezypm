@@ -7,6 +7,10 @@ coverage/
 *.log
 .DS_Store
 
+# unzipped design package (we keep the .zip and the mirror under src/frontend/_design-reference/)
+project-management/
+"project management-handoff.zip"
+
 # env
 .env
 .env.local
