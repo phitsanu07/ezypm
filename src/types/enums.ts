@@ -183,3 +183,39 @@ export const TAG_COLORS: Record<string, TagColor> = {
 };
 
 export const DEFAULT_TAG_COLOR: TagColor = { bg: "#EEF0F2", fg: "#52575C" };
+
+// ----- Activity type -----
+export const ACTIVITY_TYPE = {
+  MEETING: "meeting",
+  MILESTONE: "milestone",
+  PROGRESS: "progress",
+  NOTE: "note",
+  BLOCK: "block",
+} as const;
+export type ActivityType =
+  (typeof ACTIVITY_TYPE)[keyof typeof ACTIVITY_TYPE];
+
+export const ACTIVITY_TYPE_VALUES: ActivityType[] = [
+  "meeting",
+  "milestone",
+  "progress",
+  "note",
+  "block",
+];
+
+export interface ActivityTypeMeta {
+  id: ActivityType;
+  label: string;
+  labelTh: string;
+  icon: string;      // single-char glyph for chip
+  bg: string;        // CSS color hex
+  fg: string;
+}
+
+export const ACTIVITY_TYPE_META: Record<ActivityType, ActivityTypeMeta> = {
+  meeting:   { id: "meeting",   label: "Meeting",   labelTh: "ประชุม",          icon: "👥", bg: "#E4EEFF", fg: "#1A56C5" },
+  milestone: { id: "milestone", label: "Milestone", labelTh: "หมุดสำคัญ",        icon: "🏁", bg: "#D7F1E3", fg: "#1F6B45" },
+  progress:  { id: "progress",  label: "Progress",  labelTh: "ความคืบหน้า",      icon: "📈", bg: "#EDE7FF", fg: "#5836CC" },
+  note:      { id: "note",      label: "Note",      labelTh: "บันทึก",            icon: "📝", bg: "#FFF1D1", fg: "#8A5A00" },
+  block:     { id: "block",     label: "Block",     labelTh: "ติดขัด/บล็อก",      icon: "⛔", bg: "#FFE0E1", fg: "#A1262A" },
+};

@@ -1,0 +1,23 @@
+:root {
+  --bg: #FAFAF7;
+  --surface: #FFFFFF;
+  --ink: #1A1916;
+  --ink-2: #52575C;
+  --ink-3: #8B8F95;
+  --line: #ECEBE6;
+  --line-2: #E2E0D9;
+  --line-3: #D6D3CA;
+  --accent: #7C5CFF;
+  --accent-2: #FF7849;
+  --accent-soft: #EDE7FF;
+  --accent-2-soft: #FFEAD8;
+  --green: #3DBE8B;
+  --red: #E5484D;
+  --amber: #F4A300;
+  --blue: #3A86FF;
+  --shadow-sm: 0 1px 2px rgba(20,18,12,0.04);
+  --shadow-md: 0 4px 16px rgba(20,18,12,0.08);
+  --shadow-lg: 0 8px 32px rgba(20,18,12,0.12);
+  --font-sans: "Plus Jakarta Sans", "IBM Plex Sans Thai", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}

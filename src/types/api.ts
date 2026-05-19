@@ -1,14 +1,15 @@
 import type {
+  Activity,
   Board,
   BoardWithMeta,
   PortfolioPayload,
   Profile,
   Project,
   ProjectWithSubs,
-  SubProject,
   SubProjectWithRelations,
 } from "./domain";
 import type {
+  ActivityType,
   ProjectType,
   SubProjectPriority,
   SubProjectStatus,
@@ -22,16 +23,54 @@ export interface ApiOk<T> {
   data: T;
 }
 
+export type ApiErrorCode =
+  | "Z_VALIDATION"
+  | "UNAUTHENTICATED"
+  | "INVALID_CREDENTIALS"
+  | "PROFILE_MISSING"
+  | "USER_SUSPENDED"
+  | "FORBIDDEN"
+  | "NOT_BOARD_MEMBER"
+  | "RLS_DENIED"
+  | "BOARD_NOT_FOUND"
+  | "PROJECT_NOT_FOUND"
+  | "SUBPROJECT_NOT_FOUND"
+  | "ACTIVITY_NOT_FOUND"
+  | "USER_NOT_FOUND"
+  | "TARGET_PROJECT_NOT_FOUND"
+  | "NOT_A_MEMBER"
+  | "ALREADY_MEMBER"
+  | "CANNOT_REMOVE_OWNER"
+  | "CANNOT_SUSPEND_SELF"
+  | "EMAIL_TAKEN"
+  | "BOARDS_DIFFER"
+  | "RATE_LIMITED"
+  | "INTERNAL_ERROR"
+  | "NOT_FOUND"
+  | "NETWORK_ERROR";          // client-side only
+
 export interface ApiErr {
   ok: false;
   error: {
-    code: string;
+    code: ApiErrorCode;
     message: string;
     details?: unknown;
   };
 }
 
 export type ApiResponse<T> = ApiOk<T> | ApiErr;
+
+// ===== Auth (login) =====
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  profile: Profile;
+}
 
 // ===== Auth & me =====
 export interface MeResponse {
@@ -55,6 +94,7 @@ export interface UpdateBoardInput {
   color?: string;
 }
 
+// MVP-unused; kept for v2 replace-all member endpoint
 export interface SetBoardMembersInput {
   memberIds: string[];
 }
@@ -138,6 +178,7 @@ export interface InviteUserInput {
   nameTh?: string;
   role: UserRole;
   color?: string;
+  password: string;            // admin sets initial password
 }
 
 export interface UpdateUserInput {
@@ -150,27 +191,57 @@ export interface UpdateUserInput {
 
 export type ListUsersResponse = Profile[];
 
+// ===== Activities =====
+export interface CreateActivityInput {
+  subProjectId: string;
+  type: ActivityType;
+  title: string;
+  body?: string | null;
+  occursAt: string;            // ISODateString
+}
+
+export interface UpdateActivityInput {
+  type?: ActivityType;
+  title?: string;
+  body?: string | null;
+  occursAt?: string;
+}
+
+export interface ListActivitiesQuery {
+  from?: string;               // ISODateOnly inclusive
+  to?: string;                 // ISODateOnly inclusive
+}
+
+export type ListActivitiesResponse = Activity[];
+export type CreateActivityResponse = Activity;
+export type UpdateActivityResponse = Activity;
+
 // ===== AI (Gemini-backed Express endpoints) =====
+// MVP-unused; kept for v2 Gemini integration
 export interface SummarizeBoardInput {
   boardId: string;
 }
 
+// MVP-unused; kept for v2 Gemini integration
 export interface SummarizeBoardResponse {
   summary: string;          // Markdown
   highlights: string[];     // top 3 things to focus on
   risks: string[];          // overdue / blocked / stuck
 }
 
+// MVP-unused; kept for v2 Gemini integration
 export interface SuggestNextStepInput {
   subProjectId: string;
 }
 
+// MVP-unused; kept for v2 Gemini integration
 export interface SuggestNextStepResponse {
   suggestion: string;
   confidence: "low" | "medium" | "high";
 }
 
 // ===== Realtime channel hints (Supabase) =====
+// MVP-unused; kept for v2 realtime subscription
 export type RealtimeEventKind =
   | "subproject.upsert"
   | "subproject.delete"
@@ -178,6 +249,7 @@ export type RealtimeEventKind =
   | "project.delete"
   | "board.upsert";
 
+// MVP-unused; kept for v2 realtime subscription
 export interface RealtimeEvent<T = unknown> {
   kind: RealtimeEventKind;
   boardId: string;

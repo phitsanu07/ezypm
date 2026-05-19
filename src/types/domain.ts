@@ -1,4 +1,5 @@
 import type {
+  ActivityType,
   ProjectType,
   SubProjectPriority,
   SubProjectStatus,
@@ -8,6 +9,9 @@ import type {
 
 export type ISODateString = string;     // "2026-05-13T09:12:00.000Z"
 export type ISODateOnly = string;       // "2026-06-20"
+
+// A sub-project is "at risk" if overdue OR not updated for this many days AND status !== 'go_live'
+export const AT_RISK_STALE_DAYS = 14;
 
 // ===== Profile (mapped 1-1 to Supabase auth.users via id) =====
 export interface Profile {
@@ -20,6 +24,7 @@ export interface Profile {
   color: string;             // hex, e.g. "#7C5CFF"
   initials: string;          // "AS"
   lastActiveAt: ISODateString | null;
+  suspendedAt: ISODateString | null;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -77,6 +82,8 @@ export interface SubProject {
   priority: SubProjectPriority;
   due: ISODateOnly | null;   // "YYYY-MM-DD"
   progress: number;          // 0..100
+  progressPrev: number | null;             // previous progress value, for delta indicator
+  progressUpdatedAt: ISODateString | null; // when progress last changed
   quarter: string | null;    // e.g. "Q2-26"
   tags: string[];            // open vocab; lookups via TAG_COLORS
   position: number;          // ordering within a project
@@ -122,4 +129,17 @@ export interface ProjectStats {
   shippedCount: number;
   atRiskCount: number;
   avgProgress: number;
+}
+
+// ===== Activity (timeline entry on a sub-project) =====
+export interface Activity {
+  id: string;
+  subProjectId: string;
+  authorId: string | null;             // null if author was hard-deleted in v2 (MVP: never null because soft-delete)
+  type: ActivityType;
+  title: string;
+  body: string | null;
+  occursAt: ISODateString;             // when the activity occurs (calendar timestamp)
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
 }

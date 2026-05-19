@@ -1,0 +1,127 @@
+.login-page {
+  display: flex;
+  height: 100vh;
+  background: var(--bg);
+}
+
+.login-brand-panel {
+  flex: 1;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 48px;
+  color: #fff;
+  min-width: 0;
+}
+
+.login-brand-logo {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+}
+
+.login-brand-tagline {
+  font-size: 16px;
+  opacity: 0.85;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.login-form-panel {
+  width: 460px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: var(--surface);
+}
+
+.login-form-inner {
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 0 0 28px;
+}
+
+.login-error {
+  background: #FFF0F0;
+  border: 1px solid #FFD0D0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--red);
+  margin-bottom: 14px;
+}
+
+.login-submit-btn {
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+  margin-top: 4px;
+}
+.login-submit-btn:hover { background: #6B4EE8; }
+.login-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- DEMO CREDS BOX (dev only) ---------- */
+.creds-quickfill {
+  margin-top: 24px;
+  border: 1px dashed var(--line-2);
+  border-radius: 9px;
+  padding: 12px;
+  background: var(--bg);
+}
+
+.creds-quickfill-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.creds-quickfill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.creds-quickfill-item:hover { background: var(--line); }
+
+.creds-quickfill-role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.creds-quickfill-email {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+}
