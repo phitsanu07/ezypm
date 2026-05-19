@@ -3,12 +3,10 @@
   "buildCommand": "npm run build:fe",
   "outputDirectory": "dist",
   "framework": null,
-  "functions": {
-    "api/[...path].ts": {
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
-    { "source": "/((?!api|assets).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|assets/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
