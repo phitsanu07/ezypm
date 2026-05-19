@@ -16,7 +16,10 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
-function parseEnv(): Env {
+let _cached: Env | null = null;
+
+export function getEnv(): Env {
+  if (_cached) return _cached;
   const raw = {
     SUPABASE_URL:
       process.env["SUPABASE_URL"] ?? process.env["NEXT_PUBLIC_SUPABASE_URL"],
@@ -24,14 +27,22 @@ function parseEnv(): Env {
     PORT: process.env["PORT"],
     NODE_ENV: process.env["NODE_ENV"],
   };
-
   const result = EnvSchema.safeParse(raw);
   if (!result.success) {
-    console.error("Missing or invalid environment variables:");
-    console.error(result.error.flatten().fieldErrors);
-    process.exit(1);
+    const fieldErrors = result.error.flatten().fieldErrors;
+    throw new Error(
+      `Env validation failed: ${JSON.stringify(fieldErrors)}`,
+    );
   }
-  return result.data;
+  _cached = result.data;
+  return _cached;
 }
 
-export const env = parseEnv();
+// Lazy proxy preserves the existing `import { env } from "@/api/env"` API
+// without triggering validation at module load. Useful for serverless
+// functions where init errors must be catchable by the request handler.
+export const env = new Proxy({} as Env, {
+  get(_target, prop: string | symbol) {
+    return getEnv()[prop as keyof Env];
+  },
+});
