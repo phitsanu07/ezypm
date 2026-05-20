@@ -15,7 +15,7 @@ const COLUMNS: ColumnDef[] = [
   { id: "due", label: "Due" },
   { id: "progress", label: "Progress" },
   { id: "tags", label: "Tags" },
-  { id: "quarter", label: "Quarter" },
+  { id: "quarter", label: "Note" },
 ];
 
 interface GridHeaderProps {
