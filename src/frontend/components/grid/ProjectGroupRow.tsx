@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import type { ProjectWithSubs } from "@/types";
 import { useGridUIStore } from "@/frontend/store/useGridUIStore";
 import { usePortfolioStore } from "@/frontend/store/usePortfolioStore";
@@ -27,6 +28,8 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
   const projects = usePortfolioStore((s) => s.payload?.projects ?? []);
   const pushToast = useToastStore((s) => s.push);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(project.name);
   const [moving, setMoving] = useState(false);
@@ -237,62 +240,81 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
           onClick={(e) => e.stopPropagation()}
         >
           <button
+            ref={menuBtnRef}
             className="btn-icon"
             onClick={(e) => {
               e.stopPropagation();
+              if (!menuOpen && menuBtnRef.current) {
+                const r = menuBtnRef.current.getBoundingClientRect();
+                setMenuRect(r);
+              }
               setMenuOpen(!menuOpen);
             }}
             aria-label="Project options"
           >
             ···
           </button>
-          {menuOpen && (
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: "100%",
-                background: "var(--surface)",
-                border: "1px solid var(--line-2)",
-                borderRadius: "9px",
-                boxShadow: "var(--shadow-md)",
-                zIndex: 10,
-                padding: "4px",
-                minWidth: "160px",
-              }}
-            >
-              <button
-                className="popover-item"
-                onClick={() => {
-                  setEditing(true);
-                  setMenuOpen(false);
-                }}
-              >
-                ✎ Rename project
-              </button>
-              <button
-                className="popover-item"
-                onClick={() => moveBy(-1)}
-                disabled={!canMoveUp || moving}
-              >
-                ▲ Move up
-              </button>
-              <button
-                className="popover-item"
-                onClick={() => moveBy(1)}
-                disabled={!canMoveDown || moving}
-              >
-                ▼ Move down
-              </button>
-              <button
-                className="popover-item"
-                style={{ color: "var(--red)" }}
-                onClick={handleDelete}
-              >
-                Delete project
-              </button>
-            </div>
-          )}
+          {menuOpen &&
+            menuRect &&
+            createPortal(
+              <>
+                <div
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: 9998,
+                  }}
+                />
+                <div
+                  style={{
+                    position: "fixed",
+                    top: menuRect.bottom + 4,
+                    left: menuRect.right - 180,
+                    background: "var(--surface)",
+                    border: "1px solid var(--line-2)",
+                    borderRadius: "9px",
+                    boxShadow: "var(--shadow-md)",
+                    zIndex: 9999,
+                    padding: "4px",
+                    minWidth: "180px",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="popover-item"
+                    onClick={() => {
+                      setEditing(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    ✎ Rename project
+                  </button>
+                  <button
+                    className="popover-item"
+                    onClick={() => moveBy(-1)}
+                    disabled={!canMoveUp || moving}
+                  >
+                    ▲ Move up
+                  </button>
+                  <button
+                    className="popover-item"
+                    onClick={() => moveBy(1)}
+                    disabled={!canMoveDown || moving}
+                  >
+                    ▼ Move down
+                  </button>
+                  <button
+                    className="popover-item"
+                    style={{ color: "var(--red)" }}
+                    onClick={handleDelete}
+                  >
+                    Delete project
+                  </button>
+                </div>
+              </>,
+              document.body,
+            )}
         </div>
       )}
     </div>
