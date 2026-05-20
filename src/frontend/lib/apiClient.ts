@@ -2,16 +2,11 @@ import { supabase } from "@/frontend/lib/supabaseClient";
 import { ApiClientError } from "@/frontend/lib/http-errors";
 import type { ApiErrorCode } from "@/types";
 
-// Dev (Vite): API runs on a separate port → http://localhost:3001
-// Prod (Vercel): API + frontend share origin → relative path (empty base)
-// Override via VITE_API_BASE_URL if needed.
-const explicit = import.meta.env["VITE_API_BASE_URL"] as string | undefined;
-const API_BASE_URL =
-  explicit !== undefined
-    ? explicit
-    : import.meta.env.PROD
-      ? ""
-      : "http://localhost:3001";
+// Dev: Vite on :5173/5174 → API on :3001 (absolute URL).
+// Prod (Vercel): API + frontend share origin → relative path.
+// `import.meta.env.PROD` is statically replaced by Vite so the unused branch
+// is tree-shaken out of the production bundle.
+const API_BASE_URL = import.meta.env.PROD ? "" : "http://localhost:3001";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 

@@ -9,7 +9,7 @@
     "dev:api": "NODE_TLS_REJECT_UNAUTHORIZED=0 tsx watch src/api/server.ts",
     "build": "npm run build:api && npm run build:fe",
     "vercel-build": "npm run build:api && npm run build:fe",
-    "build:fe": "vite build",
+    "build:fe": "NODE_ENV=production vite build",
     "build:api": "tsc -p tsconfig.api.json && tsc-alias -p tsconfig.api.json",
     "preview": "vite preview",
     "start": "node dist/api/server.js",
