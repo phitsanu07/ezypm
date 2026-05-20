@@ -81,12 +81,34 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
     const other = projects[otherIndex];
     if (!other) return;
     setMoving(true);
+
+    const myPos = project.position;
+    const otherPos = other.position;
+
+    // Optimistic: swap positions locally + re-sort so the UI reorders
+    // immediately. Network calls then fire in parallel; we only refresh
+    // on failure.
+    usePortfolioStore.setState((state) => {
+      if (!state.payload) return {};
+      return {
+        payload: {
+          ...state.payload,
+          projects: state.payload.projects
+            .map((p) => {
+              if (p.id === project.id) return { ...p, position: otherPos };
+              if (p.id === other.id) return { ...p, position: myPos };
+              return p;
+            })
+            .sort((a, b) => a.position - b.position),
+        },
+      };
+    });
+
     try {
-      const myPos = project.position;
-      const otherPos = other.position;
-      await updateProject(project.id, { position: otherPos });
-      await updateProject(other.id, { position: myPos });
-      await refresh();
+      await Promise.all([
+        updateProject(project.id, { position: otherPos }),
+        updateProject(other.id, { position: myPos }),
+      ]);
       pushToast({
         tone: "success",
         message: delta === -1 ? "ย้ายขึ้นแล้ว" : "ย้ายลงแล้ว",
