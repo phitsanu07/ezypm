@@ -109,6 +109,88 @@ router.get(
 );
 
 /**
+ * GET /api/boards/:id/activities
+ * List activities across ALL sub-projects on a board, optionally date-bounded.
+ * Replaces N parallel /sub-projects/:id/activities calls from Calendar/Reports.
+ */
+router.get(
+  "/boards/:id/activities",
+  requireAuth,
+  validateQuery(ListActivitiesQuerySchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const boardId = req.params["id"] as string;
+
+      const { data: membership } = await supabaseAdmin
+        .from("board_members")
+        .select("board_id")
+        .eq("board_id", boardId)
+        .eq("user_id", req.userId)
+        .maybeSingle();
+
+      if (!membership) {
+        throw new ApiError("BOARD_NOT_FOUND", "Board not found", 404);
+      }
+
+      const { data: projectRows } = await supabaseAdmin
+        .from("projects")
+        .select("id")
+        .eq("board_id", boardId);
+
+      const projectIds = ((projectRows ?? []) as Record<string, unknown>[]).map(
+        (r) => r["id"] as string,
+      );
+
+      if (projectIds.length === 0) {
+        res.status(200).json({ ok: true, data: [] });
+        return;
+      }
+
+      const { data: subRows } = await supabaseAdmin
+        .from("sub_projects")
+        .select("id")
+        .in("project_id", projectIds);
+
+      const subIds = ((subRows ?? []) as Record<string, unknown>[]).map(
+        (r) => r["id"] as string,
+      );
+
+      if (subIds.length === 0) {
+        res.status(200).json({ ok: true, data: [] });
+        return;
+      }
+
+      const { from, to } = req.validated as { from?: string; to?: string };
+
+      let query = supabaseAdmin
+        .from("activities")
+        .select(
+          "id, sub_project_id, author_id, type, title, body, occurs_at, created_at, updated_at",
+        )
+        .in("sub_project_id", subIds)
+        .order("occurs_at", { ascending: true });
+
+      if (from) query = query.gte("occurs_at", `${from}T00:00:00.000Z`);
+      if (to) query = query.lte("occurs_at", `${to}T23:59:59.999Z`);
+
+      const { data: rows, error } = await query;
+
+      if (error) {
+        throw new ApiError("INTERNAL_ERROR", "Failed to load activities", 500);
+      }
+
+      const activities = (rows ?? []).map((r) =>
+        mapActivity(r as Record<string, unknown>),
+      );
+
+      res.status(200).json({ ok: true, data: activities });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
  * POST /api/activities
  * Create an activity attached to a sub-project. author_id = current user.
  */
