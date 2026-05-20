@@ -24,7 +24,8 @@ interface WeekInfo {
   isCurrent: boolean;
 }
 
-const WEEKS_BACK = 8;
+const WEEKS_BACK = 4;
+const WEEKS_FORWARD = 4;
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -62,9 +63,9 @@ function startOfWeekMonday(d: Date): Date {
 function buildWeeks(now: Date): WeekInfo[] {
   const currentMonday = startOfWeekMonday(now);
   const out: WeekInfo[] = [];
-  for (let i = 0; i < WEEKS_BACK; i++) {
+  for (let offset = -WEEKS_BACK; offset <= WEEKS_FORWARD; offset++) {
     const monday = new Date(currentMonday);
-    monday.setDate(currentMonday.getDate() - 7 * i);
+    monday.setDate(currentMonday.getDate() + 7 * offset);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     sunday.setHours(23, 59, 59, 999);
@@ -74,7 +75,7 @@ function buildWeeks(now: Date): WeekInfo[] {
       sunday,
       isoFrom: isoDate(monday),
       isoTo: isoDate(sunday),
-      isCurrent: i === 0,
+      isCurrent: offset === 0,
     });
   }
   return out;
@@ -116,8 +117,8 @@ export function ReportsView({ payload }: ReportsViewProps) {
 
   const now = useMemo(() => new Date(), []);
   const weeks = useMemo(() => buildWeeks(now), [now]);
-  const earliest = weeks[weeks.length - 1]?.isoFrom ?? isoDate(now);
-  const latest = weeks[0]?.isoTo ?? isoDate(now);
+  const earliest = weeks[0]?.isoFrom ?? isoDate(now);
+  const latest = weeks[weeks.length - 1]?.isoTo ?? isoDate(now);
 
   const allSubs = useMemo(
     () => payload.projects.flatMap((p) => p.subProjects),
@@ -128,9 +129,19 @@ export function ReportsView({ payload }: ReportsViewProps) {
     loadByBoard(payload.board.id, earliest, latest).catch(() => undefined);
   }, [payload.board.id, earliest, latest, loadByBoard]);
 
-  const firstKey = weeks[0]?.key ?? "";
+  const currentKey = useMemo(
+    () => weeks.find((w) => w.isCurrent)?.key ?? "",
+    [weeks],
+  );
+  const lastFourKeys = useMemo(() => {
+    const idx = weeks.findIndex((w) => w.isCurrent);
+    if (idx === -1) return [] as string[];
+    const start = Math.max(0, idx - 3);
+    return weeks.slice(start, idx + 1).map((w) => w.key);
+  }, [weeks]);
+
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
-    () => new Set(firstKey ? [firstKey] : []),
+    () => new Set(currentKey ? [currentKey] : []),
   );
 
   function toggleWeek(key: string) {
@@ -143,10 +154,10 @@ export function ReportsView({ payload }: ReportsViewProps) {
     });
   }
   function selectThisWeek() {
-    if (firstKey) setSelectedKeys(new Set([firstKey]));
+    if (currentKey) setSelectedKeys(new Set([currentKey]));
   }
   function selectLast4() {
-    setSelectedKeys(new Set(weeks.slice(0, 4).map((w) => w.key)));
+    if (lastFourKeys.length > 0) setSelectedKeys(new Set(lastFourKeys));
   }
   function selectAll() {
     setSelectedKeys(new Set(weeks.map((w) => w.key)));
@@ -214,10 +225,11 @@ export function ReportsView({ payload }: ReportsViewProps) {
   }, [payload.members]);
 
   const isOnlyThisWeek =
-    selectedKeys.size === 1 && firstKey !== "" && selectedKeys.has(firstKey);
+    selectedKeys.size === 1 && currentKey !== "" && selectedKeys.has(currentKey);
   const isLast4 =
-    selectedKeys.size === 4 &&
-    weeks.slice(0, 4).every((w) => selectedKeys.has(w.key));
+    lastFourKeys.length > 0 &&
+    selectedKeys.size === lastFourKeys.length &&
+    lastFourKeys.every((k) => selectedKeys.has(k));
   const isAll = selectedKeys.size === weeks.length;
 
   return (
@@ -293,7 +305,7 @@ export function ReportsView({ payload }: ReportsViewProps) {
         </div>
 
         <div className="rep-week-strip">
-          {[...weeksWithActs].reverse().map((w) => {
+          {weeksWithActs.map((w) => {
             const selected = selectedKeys.has(w.key);
             return (
               <button
