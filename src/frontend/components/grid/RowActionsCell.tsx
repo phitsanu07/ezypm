@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePortfolioStore } from "@/frontend/store/usePortfolioStore";
 import { useToastStore } from "@/frontend/store/useToastStore";
+import { ActivityModal } from "@/frontend/components/calendar/ActivityModal";
 
 interface RowActionsCellProps {
   subProjectId: string;
@@ -14,14 +15,25 @@ function errorMessage(err: unknown): string {
   return "Unknown error";
 }
 
+function defaultOccursAtForToday(): string {
+  // Today at 09:00 — gives the picker a sane initial value the user can edit.
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}T09:00`;
+}
+
 export function RowActionsCell({
   subProjectId,
   rowNumber,
   readOnly,
 }: RowActionsCellProps) {
   const deleteSubProject = usePortfolioStore((s) => s.deleteSubProject);
+  const projects = usePortfolioStore((s) => s.payload?.projects ?? []);
   const pushToast = useToastStore((s) => s.push);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
 
   if (readOnly) return <div className="cell cell-actions" role="gridcell" />;
 
@@ -38,6 +50,13 @@ export function RowActionsCell({
       });
     }
   }
+
+  function handleAddActivity() {
+    setMenuOpen(false);
+    setActivityModalOpen(true);
+  }
+
+  const allSubs = projects.flatMap((p) => p.subProjects);
 
   return (
     <div className="cell cell-actions" role="gridcell">
@@ -62,6 +81,13 @@ export function RowActionsCell({
           <div className="row-menu-popover" role="menu">
             <button
               className="popover-item"
+              onClick={handleAddActivity}
+              role="menuitem"
+            >
+              + เพิ่ม activity / Add activity
+            </button>
+            <button
+              className="popover-item"
               style={{ color: "var(--red)" }}
               onClick={handleDelete}
               role="menuitem"
@@ -70,6 +96,16 @@ export function RowActionsCell({
             </button>
           </div>
         </>
+      )}
+
+      {activityModalOpen && (
+        <ActivityModal
+          subProjects={allSubs}
+          projects={projects}
+          lockedSubProjectId={subProjectId}
+          defaultOccursAt={defaultOccursAtForToday()}
+          onClose={() => setActivityModalOpen(false)}
+        />
       )}
     </div>
   );

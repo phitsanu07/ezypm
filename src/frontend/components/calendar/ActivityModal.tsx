@@ -16,6 +16,10 @@ interface ActivityModalProps {
   projects: ProjectWithSubs[];
   activity?: Activity;
   defaultOccursAt?: string;
+  // When set, the modal creates an activity for this sub-project only — the
+  // picker is replaced by a read-only label. Used by RowActionsCell's
+  // "Add activity" entry.
+  lockedSubProjectId?: string;
   onClose(): void;
 }
 
@@ -24,6 +28,7 @@ export function ActivityModal({
   projects,
   activity,
   defaultOccursAt,
+  lockedSubProjectId,
   onClose,
 }: ActivityModalProps) {
   const create = useActivitiesStore((s) => s.create);
@@ -32,7 +37,10 @@ export function ActivityModal({
   const profile = useAuthStore((s) => s.profile);
 
   const [subProjectId, setSubProjectId] = useState<string>(
-    activity?.subProjectId ?? subProjects[0]?.id ?? "",
+    activity?.subProjectId ??
+      lockedSubProjectId ??
+      subProjects[0]?.id ??
+      "",
   );
   const [type, setType] = useState<CreateActivityInput["type"]>(
     activity?.type ?? "note",
@@ -146,22 +154,57 @@ export function ActivityModal({
 
       <div className="form-field">
         <label className="form-label">Sub-project *</label>
-        <select
-          className="form-select"
-          value={subProjectId}
-          onChange={(e) => setSubProjectId(e.target.value)}
-          disabled={isEditing || !isAuthor}
-        >
-          {subProjectsByProject.map(({ project, subs }) => (
-            <optgroup key={project.id} label={project.name}>
-              {subs.map((sp) => (
-                <option key={sp.id} value={sp.id}>
-                  {sp.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        {lockedSubProjectId ? (
+          (() => {
+            const locked = subProjects.find((s) => s.id === lockedSubProjectId);
+            const lockedProject = locked
+              ? projects.find((p) => p.id === locked.projectId)
+              : null;
+            return (
+              <div
+                className="form-input"
+                style={{
+                  background: "var(--bg)",
+                  color: "var(--ink-2)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  cursor: "default",
+                }}
+              >
+                {lockedProject && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: lockedProject.color,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {lockedProject.name}
+                  </span>
+                )}
+                <span>{locked?.name ?? "(unknown)"}</span>
+              </div>
+            );
+          })()
+        ) : (
+          <select
+            className="form-select"
+            value={subProjectId}
+            onChange={(e) => setSubProjectId(e.target.value)}
+            disabled={isEditing || !isAuthor}
+          >
+            {subProjectsByProject.map(({ project, subs }) => (
+              <optgroup key={project.id} label={project.name}>
+                {subs.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        )}
       </div>
 
       <div className="form-field">
