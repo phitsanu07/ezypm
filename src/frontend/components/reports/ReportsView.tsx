@@ -152,10 +152,21 @@ export function ReportsView({ payload }: ReportsViewProps) {
     setSelectedKeys(new Set(weeks.map((w) => w.key)));
   }
 
-  const allActivities: Activity[] = useMemo(
-    () => allSubs.flatMap((sub) => bySubProjectId[sub.id] ?? []),
-    [allSubs, bySubProjectId],
-  );
+  // Project filter — "all" means no filter. When set, only activities whose
+  // sub-project belongs to the chosen project are counted/listed.
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+
+  const filterSubIds = useMemo(() => {
+    if (projectFilter === "all") return null;
+    const p = payload.projects.find((x) => x.id === projectFilter);
+    return new Set((p?.subProjects ?? []).map((s) => s.id));
+  }, [projectFilter, payload.projects]);
+
+  const allActivities: Activity[] = useMemo(() => {
+    const raw = allSubs.flatMap((sub) => bySubProjectId[sub.id] ?? []);
+    if (!filterSubIds) return raw;
+    return raw.filter((a) => filterSubIds.has(a.subProjectId));
+  }, [allSubs, bySubProjectId, filterSubIds]);
 
   const weeksWithActs = useMemo(() => {
     return weeks.map((w) => {
@@ -211,9 +222,46 @@ export function ReportsView({ payload }: ReportsViewProps) {
 
   return (
     <div className="reports-view">
-      <div className="rep-head">
-        <h2>รายงานกิจกรรม</h2>
-        <p>เลือกสัปดาห์ที่ต้องการดู — คลิกเพื่อเลือก/ยกเลิก, เลือกได้หลายสัปดาห์</p>
+      <div
+        className="rep-head"
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h2>รายงานกิจกรรม</h2>
+          <p>เลือกสัปดาห์ที่ต้องการดู — คลิกเพื่อเลือก/ยกเลิก, เลือกได้หลายสัปดาห์</p>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "12.5px",
+          }}
+        >
+          <label htmlFor="rep-project-filter" style={{ color: "var(--ink-3)" }}>
+            Project:
+          </label>
+          <select
+            id="rep-project-filter"
+            className="form-select"
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            style={{ width: "auto", minWidth: "180px" }}
+          >
+            <option value="all">ทั้งหมด / All projects ({payload.projects.length})</option>
+            {payload.projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.icon} {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="rep-week-selector">
