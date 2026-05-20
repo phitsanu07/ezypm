@@ -107,9 +107,70 @@ npm run build            # build:api then build:fe
 
 ## Environment
 
-- `.env` is gitignored but `.env.example` lives at root with shape: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, plus Gemini key.
+- `.env` is gitignored but `.env.example` lives at root with shape:
+  - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (frontend — Vite reads `VITE_*` only)
+  - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (backend — server-only)
 - Backend uses the service role key (server-only). Frontend uses anon key (RLS-enforced).
 - Never log or commit secrets.
+- `dev:api` script sets `NODE_TLS_REJECT_UNAUTHORIZED=0` for corporate-proxy environments (boonthavorn). Dev-only — do not enable in production.
+
+## Authentication & Vercel deploy — pitfalls (debugged the hard way)
+
+These tripped us up during the initial Vercel deploy. Read before touching auth, env, or build config.
+
+### 1. Vite `import.meta.env.PROD` depends on `NODE_ENV` at build time
+
+`vite build` alone is **not enough** — if the shell has `NODE_ENV` unset or empty, `import.meta.env.PROD === false`, so the dev branch of any ternary stays in the production bundle. The frontend ended up calling `http://localhost:3001/api/auth/me` from `https://ezypm.vercel.app` → CORS-blocked → "Failed to load profile".
+
+Always:
+- `build:fe` script is `NODE_ENV=production vite build` (not just `vite build`)
+- Use `import.meta.env.PROD ? "" : "http://localhost:3001"` with **dot notation** in `apiClient.ts`. Vite tree-shakes the dead branch; bracket notation (`import.meta.env["VAR"]`) does **not** tree-shake reliably
+- Frontend on Vercel uses **relative `/api/*`** paths (same origin) — no `VITE_API_BASE_URL` env var needed in production
+
+### 2. Vercel serverless functions run TypeScript as **ESM**
+
+- `require()` is undefined — use `createRequire(import.meta.url)` if you must do CJS interop
+- `process.exit(N)` at module-load time silently kills the worker → `FUNCTION_INVOCATION_FAILED` with no log
+- Static `import "../src/..."` from `api/*.ts` is **NOT bundled** by `@vercel/node` — the dep tree above `/api/` is left as runtime imports → `ERR_MODULE_NOT_FOUND` at runtime
+- TypeScript path aliases (`@/api/*`) are **not rewritten** during compile — they reach runtime as literal `require("@/api/env")` and fail to resolve
+
+### 3. The Vercel build pipeline we landed on
+
+`api/index.ts` (the Vercel function entry) is intentionally minimal:
+
+1. `npm run build:api` runs `tsc -p tsconfig.api.json && tsc-alias -p tsconfig.api.json`
+   - tsc compiles `src/api/**` → `compiled/api/**` as CJS
+   - tsc-alias rewrites `@/api/...` → relative `./...` in the compiled output
+2. `vercel.json` has `functions["api/index.ts"].includeFiles: "compiled/**"` so the compiled tree ships with the function bundle
+3. `api/index.ts` uses `createRequire(import.meta.url)` + lazy load to require `../compiled/api/api/server.js` inside an ESM handler — wrapped in try/catch so init errors surface as JSON instead of opaque 500s
+4. `compiled/` is gitignored (regenerated each deploy)
+
+Do NOT:
+- Put the Express setup directly in `api/index.ts` — it must stay tiny
+- Try to import `../src/api/server` from `api/*.ts` — it won't bundle
+- Use `process.exit()` anywhere reachable from module load — `src/api/env.ts` validates lazily via a `Proxy` for this reason
+- Put backend output in `dist/` — that's the Vite outputDirectory (static assets). Use `compiled/`
+
+### 4. Authentication flow (single source of truth)
+
+```
+Login form (LoginPage)
+  → supabase.auth.signInWithPassword(email, password)   [Supabase JS — direct]
+  → frontend gets a JWT
+  → useAuthStore.bootstrap()
+  → apiClient.get("/api/auth/me")                       [Express, JWT in Bearer]
+  → Express requireAuth middleware:
+     - supabaseAdmin.auth.getUser(token)  → user id
+     - SELECT profile by id               → req.profile
+     - reject 403 USER_SUSPENDED if status='suspended'
+  → /api/auth/me returns { profile, boards[] }
+```
+
+If `/api/auth/me` ever returns a non-401 error, the frontend shows "Failed to load profile". The error is **never** about Supabase Auth itself — it's always one of:
+- Network/CORS (build pointed at wrong origin — see #1)
+- Backend crash on module load (env/process.exit — see #2)
+- Profile row missing for the auth.users id (run seed.sql, or there's an orphan)
+- Profile suspended (status='suspended' → admin can reactivate)
 
 ## Agent workflow
 
