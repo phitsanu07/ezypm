@@ -112,7 +112,7 @@ function dateOf(iso: string): string {
 export function ReportsView({ payload }: ReportsViewProps) {
   const bySubProjectId = useActivitiesStore((s) => s.bySubProjectId);
   const status = useActivitiesStore((s) => s.status);
-  const load = useActivitiesStore((s) => s.load);
+  const loadByBoard = useActivitiesStore((s) => s.loadByBoard);
 
   const now = useMemo(() => new Date(), []);
   const weeks = useMemo(() => buildWeeks(now), [now]);
@@ -125,11 +125,8 @@ export function ReportsView({ payload }: ReportsViewProps) {
   );
 
   useEffect(() => {
-    for (const sub of allSubs) {
-      load(sub.id, earliest, latest).catch(() => undefined);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payload.board.id, earliest, latest]);
+    loadByBoard(payload.board.id, earliest, latest).catch(() => undefined);
+  }, [payload.board.id, earliest, latest, loadByBoard]);
 
   const firstKey = weeks[0]?.key ?? "";
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(

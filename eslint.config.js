@@ -10,6 +10,7 @@ export default [
     ignores: [
       "node_modules/**",
       "dist/**",
+      "compiled/**",
       "build/**",
       "coverage/**",
       "src/frontend/_design-reference/**",

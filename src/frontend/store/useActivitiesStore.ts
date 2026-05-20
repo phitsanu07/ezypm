@@ -15,6 +15,7 @@ interface ActivitiesState {
   bySubProjectId: Record<string, Activity[]>;
   status: ActivitiesStatus;
   load(subProjectId: string, from?: string, to?: string): Promise<void>;
+  loadByBoard(boardId: string, from?: string, to?: string): Promise<void>;
   create(input: CreateActivityInput): Promise<void>;
   update(id: string, input: UpdateActivityInput): Promise<void>;
   delete(id: string): Promise<void>;
@@ -39,6 +40,28 @@ export const useActivitiesStore = create<ActivitiesState>()((set, get) => ({
         status: "ready",
         bySubProjectId: { ...state.bySubProjectId, [subProjectId]: data },
       }));
+    } catch {
+      set({ status: "error" });
+    }
+  },
+
+  async loadByBoard(boardId, from, to) {
+    set({ status: "loading" });
+    try {
+      const params = new URLSearchParams();
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+      const query = params.toString() ? `?${params.toString()}` : "";
+      const data = await apiClient.get<ListActivitiesResponse>(
+        `/api/boards/${boardId}/activities${query}`,
+      );
+      const grouped: Record<string, Activity[]> = {};
+      for (const a of data) {
+        const list = grouped[a.subProjectId] ?? [];
+        list.push(a);
+        grouped[a.subProjectId] = list;
+      }
+      set({ status: "ready", bySubProjectId: grouped });
     } catch {
       set({ status: "error" });
     }

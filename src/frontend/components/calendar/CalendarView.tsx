@@ -56,7 +56,7 @@ export function CalendarView({ payload, readOnly }: CalendarViewProps) {
 
   const bySubProjectId = useActivitiesStore((s) => s.bySubProjectId);
   const status = useActivitiesStore((s) => s.status);
-  const loadActivities = useActivitiesStore((s) => s.load);
+  const loadByBoard = useActivitiesStore((s) => s.loadByBoard);
 
   const allSubs: SubProjectWithRelations[] = useMemo(
     () => payload.projects.flatMap((p) => p.subProjects),
@@ -71,15 +71,13 @@ export function CalendarView({ payload, readOnly }: CalendarViewProps) {
     return map;
   }, [payload.projects]);
 
-  // Load activities for ALL sub-projects in the visible month
+  // Single board-wide fetch instead of N per-sub-project requests.
   useEffect(() => {
     const fromDate = `${year}-${pad2(month + 1)}-01`;
     const lastDay = getDaysInMonth(year, month);
     const toDate = `${year}-${pad2(month + 1)}-${pad2(lastDay)}`;
-    for (const sub of allSubs) {
-      loadActivities(sub.id, fromDate, toDate).catch(() => undefined);
-    }
-  }, [year, month, allSubs, loadActivities]);
+    loadByBoard(payload.board.id, fromDate, toDate).catch(() => undefined);
+  }, [year, month, payload.board.id, loadByBoard]);
 
   const activitiesByDay = useMemo(() => {
     const map = new Map<number, Activity[]>();

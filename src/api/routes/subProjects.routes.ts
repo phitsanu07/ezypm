@@ -541,14 +541,31 @@ router.put(
           ...allTargetSubs.slice(insertAt),
         ];
 
-        for (let i = 0; i < renumbered.length; i++) {
-          const entry = renumbered[i];
-          if (!entry) continue;
-          const pos = (i + 1) * 100;
-          await supabaseAdmin
-            .from("sub_projects")
-            .update({ position: pos, project_id: body.targetProjectId })
-            .eq("id", entry.id);
+        // Single round-trip upsert — Postgres executes one INSERT...ON CONFLICT
+        // statement atomically; either all rows commit or none do, so the
+        // segment is never left half-renumbered if the function aborts.
+        const rows = renumbered
+          .map((entry, i) =>
+            entry
+              ? {
+                  id: entry.id,
+                  position: (i + 1) * 100,
+                  project_id: body.targetProjectId,
+                }
+              : null,
+          )
+          .filter((r): r is NonNullable<typeof r> => r !== null);
+
+        const { error: renumberErr } = await supabaseAdmin
+          .from("sub_projects")
+          .upsert(rows, { onConflict: "id" });
+
+        if (renumberErr) {
+          throw new ApiError(
+            "INTERNAL_ERROR",
+            `Failed to renumber: ${renumberErr.message}`,
+            500,
+          );
         }
 
         newPosition = (insertAt + 1) * 100;

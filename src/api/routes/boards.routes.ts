@@ -182,70 +182,91 @@ router.get(
         throw new ApiError("INTERNAL_ERROR", "Failed to load projects", 500);
       }
 
-      const projectsWithSubs: ProjectWithSubs[] = [];
+      const projectList = (projectRows ?? []) as Record<string, unknown>[];
+      const projectIds = projectList.map((p) => p["id"] as string);
 
-      for (const projectRow of projectRows ?? []) {
-        const pr = projectRow as Record<string, unknown>;
-        const projectId = pr["id"] as string;
+      // Batch-load all sub-projects across the board (1 query instead of N).
+      const { data: allSubRows, error: subErr } = projectIds.length
+        ? await supabaseAdmin
+            .from("sub_projects")
+            .select(
+              "id, project_id, name, name_th, icon, lead_id, status, priority, due, progress, progress_prev, progress_updated_at, quarter, tags, position, created_at, updated_at",
+            )
+            .in("project_id", projectIds)
+            .order("position", { ascending: true })
+        : { data: [] as Record<string, unknown>[], error: null };
 
-        const { data: subRows, error: subErr } = await supabaseAdmin
-          .from("sub_projects")
-          .select(
-            "id, project_id, name, name_th, icon, lead_id, status, priority, due, progress, progress_prev, progress_updated_at, quarter, tags, position, created_at, updated_at",
-          )
-          .eq("project_id", projectId)
-          .order("position", { ascending: true });
-
-        if (subErr) {
-          throw new ApiError(
-            "INTERNAL_ERROR",
-            "Failed to load sub-projects",
-            500,
-          );
-        }
-
-        const subProjectsWithRelations = await Promise.all(
-          (subRows ?? []).map(async (subRow) => {
-            const sr = subRow as Record<string, unknown>;
-            const subId = sr["id"] as string;
-
-            const { data: teamRows } = await supabaseAdmin
-              .from("sub_project_members")
-              .select(
-                "profiles(id, email, name, name_th, role, status, color, initials, last_active_at, suspended_at, created_at, updated_at)",
-              )
-              .eq("sub_project_id", subId);
-
-            const team: Profile[] = (teamRows ?? [])
-              .map((r: Record<string, unknown>) => {
-                const p = r["profiles"] as Record<string, unknown> | null;
-                return p ? mapProfile(p) : null;
-              })
-              .filter((p): p is Profile => p !== null);
-
-            let lead: Profile | null = null;
-            const leadId = sr["lead_id"] as string | null;
-            if (leadId) {
-              const { data: leadRow } = await supabaseAdmin
-                .from("profiles")
-                .select(
-                  "id, email, name, name_th, role, status, color, initials, last_active_at, suspended_at, created_at, updated_at",
-                )
-                .eq("id", leadId)
-                .single();
-              if (leadRow) {
-                lead = mapProfile(leadRow as Record<string, unknown>);
-              }
-            }
-
-            return mapSubProjectWithRelations(sr, team, lead);
-          }),
-        );
-
-        projectsWithSubs.push(
-          mapProjectWithSubs(pr, subProjectsWithRelations),
-        );
+      if (subErr) {
+        throw new ApiError("INTERNAL_ERROR", "Failed to load sub-projects", 500);
       }
+
+      const subList = (allSubRows ?? []) as Record<string, unknown>[];
+      const subIds = subList.map((s) => s["id"] as string);
+      const leadIds = Array.from(
+        new Set(
+          subList
+            .map((s) => s["lead_id"] as string | null)
+            .filter((v): v is string => !!v),
+        ),
+      );
+
+      // Batch-load all team memberships joined with profiles (1 query).
+      const { data: allTeamRows } = subIds.length
+        ? await supabaseAdmin
+            .from("sub_project_members")
+            .select(
+              "sub_project_id, profiles(id, email, name, name_th, role, status, color, initials, last_active_at, suspended_at, created_at, updated_at)",
+            )
+            .in("sub_project_id", subIds)
+        : { data: [] as Record<string, unknown>[] };
+
+      const teamsBySub = new Map<string, Profile[]>();
+      for (const row of (allTeamRows ?? []) as Record<string, unknown>[]) {
+        const subId = row["sub_project_id"] as string;
+        const profileRow = row["profiles"] as Record<string, unknown> | null;
+        if (!profileRow) continue;
+        const list = teamsBySub.get(subId) ?? [];
+        list.push(mapProfile(profileRow));
+        teamsBySub.set(subId, list);
+      }
+
+      // Batch-load all distinct lead profiles (skip if already in board members).
+      const memberById = new Map(boardMembers.map((m) => [m.id, m]));
+      const missingLeadIds = leadIds.filter((id) => !memberById.has(id));
+      if (missingLeadIds.length > 0) {
+        const { data: leadRows } = await supabaseAdmin
+          .from("profiles")
+          .select(
+            "id, email, name, name_th, role, status, color, initials, last_active_at, suspended_at, created_at, updated_at",
+          )
+          .in("id", missingLeadIds);
+        for (const row of (leadRows ?? []) as Record<string, unknown>[]) {
+          const p = mapProfile(row);
+          memberById.set(p.id, p);
+        }
+      }
+
+      // Group sub-projects by project_id for assembly.
+      const subsByProject = new Map<string, Record<string, unknown>[]>();
+      for (const sr of subList) {
+        const pid = sr["project_id"] as string;
+        const list = subsByProject.get(pid) ?? [];
+        list.push(sr);
+        subsByProject.set(pid, list);
+      }
+
+      const projectsWithSubs: ProjectWithSubs[] = projectList.map((pr) => {
+        const projectId = pr["id"] as string;
+        const projectSubs = subsByProject.get(projectId) ?? [];
+        const hydrated = projectSubs.map((sr) => {
+          const subId = sr["id"] as string;
+          const leadId = sr["lead_id"] as string | null;
+          const team = teamsBySub.get(subId) ?? [];
+          const lead = leadId ? (memberById.get(leadId) ?? null) : null;
+          return mapSubProjectWithRelations(sr, team, lead);
+        });
+        return mapProjectWithSubs(pr, hydrated);
+      });
 
       const payload: PortfolioPayload = {
         board: mapBoard(boardRow as Record<string, unknown>),

@@ -1,5 +1,7 @@
+import { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useShallow } from "zustand/react/shallow";
 import type { SubProjectWithRelations, Profile } from "@/types";
 import { useGridUIStore, DEFAULT_COLUMN_WIDTHS } from "@/frontend/store/useGridUIStore";
 import { CellShell } from "@/frontend/components/cells/CellShell";
@@ -28,7 +30,7 @@ interface SubProjectRowProps {
   rowIndex: number;
 }
 
-export function SubProjectRow({
+function SubProjectRowImpl({
   sub,
   rowNumber,
   members,
@@ -40,8 +42,14 @@ export function SubProjectRow({
   onDoneEditing,
   rowIndex,
 }: SubProjectRowProps) {
-  const selectedCell = useGridUIStore((s) => s.selectedCell);
-  const columnWidths = useGridUIStore((s) => s.columnWidths);
+  // Subscribe only to THIS row's selected column id (string | null). Selector
+  // returns a primitive so unrelated row selections don't re-render this row.
+  const selectedColForThisRow = useGridUIStore((s) =>
+    s.selectedCell?.subProjectId === sub.id ? s.selectedCell.columnId : null,
+  );
+
+  // Shallow compare so unrelated column-width updates don't trigger re-render.
+  const columnWidths = useGridUIStore(useShallow((s) => s.columnWidths));
 
   const {
     attributes,
@@ -62,9 +70,7 @@ export function SubProjectRow({
   const numWidth = columnWidths["num"] ?? DEFAULT_COLUMN_WIDTHS["num"] ?? 40;
 
   function isSelected(colId: string) {
-    return (
-      selectedCell?.subProjectId === sub.id && selectedCell.columnId === colId
-    );
+    return selectedColForThisRow === colId;
   }
 
   function isEditing(colId: string) {
@@ -288,3 +294,8 @@ export function SubProjectRow({
     </div>
   );
 }
+
+// memoized — skip re-render if props are referentially equal. Combined with
+// the row-scoped selectedColForThisRow selector, unrelated cell selections in
+// other rows no longer trigger this row to re-render.
+export const SubProjectRow = memo(SubProjectRowImpl);

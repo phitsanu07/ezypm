@@ -7,7 +7,12 @@ import { validate } from "@/api/middleware/validate";
 import { LoginSchema } from "@/api/schemas/auth";
 import { ApiError } from "@/api/lib/ApiError";
 import { mapProfile } from "@/api/lib/mappers";
-import type { MeResponse, LoginResponse, BoardWithMeta } from "@/types";
+import type {
+  MeResponse,
+  LoginResponse,
+  BoardWithMeta,
+  Profile,
+} from "@/types";
 
 const router = Router();
 
@@ -127,71 +132,89 @@ router.get(
         (r: Record<string, unknown>) => r["board_id"] as string,
       );
 
-      const boards: BoardWithMeta[] = [];
+      if (boardIds.length === 0) {
+        const data: MeResponse = { profile: req.profile, boards: [] };
+        res.status(200).json({ ok: true, data });
+        return;
+      }
 
-      for (const boardId of boardIds) {
-        const { data: boardRow, error: boardError } = await supabaseAdmin
+      // Batch-load boards, members (with profiles), and projects in parallel.
+      const [boardsRes, allMembersRes, projectsRes] = await Promise.all([
+        supabaseAdmin
           .from("boards")
-          .select("id, name, name_th, icon, color, owner_id, created_at, updated_at")
-          .eq("id", boardId)
-          .single();
-
-        if (boardError || !boardRow) continue;
-
-        const { data: membersRows } = await supabaseAdmin
+          .select(
+            "id, name, name_th, icon, color, owner_id, created_at, updated_at",
+          )
+          .in("id", boardIds),
+        supabaseAdmin
           .from("board_members")
           .select(
-            "profiles(id, email, name, name_th, role, status, color, initials, last_active_at, suspended_at, created_at, updated_at)",
+            "board_id, profiles(id, email, name, name_th, role, status, color, initials, last_active_at, suspended_at, created_at, updated_at)",
           )
-          .eq("board_id", boardId);
+          .in("board_id", boardIds),
+        supabaseAdmin.from("projects").select("id, board_id").in("board_id", boardIds),
+      ]);
 
-        const members = (membersRows ?? [])
-          .map((r: Record<string, unknown>) => {
-            const p = r["profiles"] as Record<string, unknown> | null;
-            return p ? mapProfile(p) : null;
-          })
-          .filter((p): p is NonNullable<typeof p> => p !== null);
+      const membersByBoard = new Map<string, Profile[]>();
+      for (const row of (allMembersRes.data ?? []) as Record<string, unknown>[]) {
+        const bid = row["board_id"] as string;
+        const p = row["profiles"] as Record<string, unknown> | null;
+        if (!p) continue;
+        const list = membersByBoard.get(bid) ?? [];
+        list.push(mapProfile(p));
+        membersByBoard.set(bid, list);
+      }
 
-        const { count: projectCount } = await supabaseAdmin
-          .from("projects")
-          .select("id", { count: "exact", head: true })
-          .eq("board_id", boardId);
+      const projectsByBoard = new Map<string, string[]>();
+      const allProjectIds: string[] = [];
+      for (const row of (projectsRes.data ?? []) as Record<string, unknown>[]) {
+        const bid = row["board_id"] as string;
+        const pid = row["id"] as string;
+        const list = projectsByBoard.get(bid) ?? [];
+        list.push(pid);
+        projectsByBoard.set(bid, list);
+        allProjectIds.push(pid);
+      }
 
-        const { data: projectIds } = await supabaseAdmin
-          .from("projects")
-          .select("id")
-          .eq("board_id", boardId);
-
-        const pIds = (projectIds ?? []).map(
-          (r: Record<string, unknown>) => r["id"] as string,
-        );
-
-        let subProjectCount = 0;
-        if (pIds.length > 0) {
-          const { count } = await supabaseAdmin
-            .from("sub_projects")
-            .select("id", { count: "exact", head: true })
-            .in("project_id", pIds);
-          subProjectCount = count ?? 0;
+      // Count sub-projects grouped by project_id in a single query.
+      const subCountByProject = new Map<string, number>();
+      if (allProjectIds.length > 0) {
+        const { data: subRows } = await supabaseAdmin
+          .from("sub_projects")
+          .select("project_id")
+          .in("project_id", allProjectIds);
+        for (const row of (subRows ?? []) as Record<string, unknown>[]) {
+          const pid = row["project_id"] as string;
+          subCountByProject.set(pid, (subCountByProject.get(pid) ?? 0) + 1);
         }
+      }
 
-        boards.push({
-          id: (boardRow as Record<string, unknown>)["id"] as string,
-          name: (boardRow as Record<string, unknown>)["name"] as string,
-          nameTh:
-            ((boardRow as Record<string, unknown>)["name_th"] as string | null) ??
-            null,
-          icon: (boardRow as Record<string, unknown>)["icon"] as string,
-          color: (boardRow as Record<string, unknown>)["color"] as string,
-          ownerId: (boardRow as Record<string, unknown>)["owner_id"] as string,
-          createdAt: (boardRow as Record<string, unknown>)["created_at"] as string,
-          updatedAt: (boardRow as Record<string, unknown>)["updated_at"] as string,
+      const boards: BoardWithMeta[] = ((boardsRes.data ?? []) as Record<
+        string,
+        unknown
+      >[]).map((boardRow) => {
+        const bid = boardRow["id"] as string;
+        const members = membersByBoard.get(bid) ?? [];
+        const pIds = projectsByBoard.get(bid) ?? [];
+        const subProjectCount = pIds.reduce(
+          (sum, pid) => sum + (subCountByProject.get(pid) ?? 0),
+          0,
+        );
+        return {
+          id: bid,
+          name: boardRow["name"] as string,
+          nameTh: (boardRow["name_th"] as string | null) ?? null,
+          icon: boardRow["icon"] as string,
+          color: boardRow["color"] as string,
+          ownerId: boardRow["owner_id"] as string,
+          createdAt: boardRow["created_at"] as string,
+          updatedAt: boardRow["updated_at"] as string,
           memberIds: members.map((m) => m.id),
           members,
-          projectCount: projectCount ?? 0,
+          projectCount: pIds.length,
           subProjectCount,
-        });
-      }
+        };
+      });
 
       const data: MeResponse = { profile: req.profile, boards };
       res.status(200).json({ ok: true, data });
