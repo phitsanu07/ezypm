@@ -268,7 +268,8 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
         >
           <button
             ref={menuBtnRef}
-            className="btn-icon"
+            type="button"
+            className="pg-menu-btn"
             onClick={(e) => {
               e.stopPropagation();
               if (!menuOpen && menuBtnRef.current) {
@@ -278,6 +279,7 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
               setMenuOpen(!menuOpen);
             }}
             aria-label="Project options"
+            title="ตัวเลือก / Options"
           >
             ···
           </button>
