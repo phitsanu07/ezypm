@@ -83,6 +83,8 @@ export function Popover({ anchorRect, onClose, children, minWidth = 180 }: Popov
         }}
         role="dialog"
         aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {children}
       </div>
