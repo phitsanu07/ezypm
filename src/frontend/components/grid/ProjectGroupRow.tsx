@@ -157,6 +157,7 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
     subs.length > 0
       ? Math.round(subs.reduce((a, s) => a + s.progress, 0) / subs.length)
       : 0;
+  const isComplete = subs.length > 0 && avgProgress === 100;
 
   return (
     <div
@@ -191,7 +192,12 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
           />
         ) : (
           <>
-            <span className="project-group-name">{project.name}</span>
+            <span
+              className="project-group-name"
+              style={isComplete ? { color: "var(--green)" } : undefined}
+            >
+              {project.name}
+            </span>
             {project.nameTh && (
               <span style={{ fontSize: "11.5px", color: "var(--ink-3)" }}>
                 {project.nameTh}
@@ -254,7 +260,12 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
           </span>
         )}
         <span className="project-group-stat">
-          <span style={{ fontWeight: 600, color: "var(--accent)" }}>
+          <span
+            style={{
+              fontWeight: 600,
+              color: isComplete ? "var(--green)" : "var(--accent)",
+            }}
+          >
             {avgProgress}%
           </span>
         </span>
