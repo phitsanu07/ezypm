@@ -127,9 +127,12 @@ Always:
 - Use `import.meta.env.PROD ? "" : "http://localhost:3001"` with **dot notation** in `apiClient.ts`. Vite tree-shakes the dead branch; bracket notation (`import.meta.env["VAR"]`) does **not** tree-shake reliably
 - Frontend on Vercel uses **relative `/api/*`** paths (same origin) — no `VITE_API_BASE_URL` env var needed in production
 
-### 2. Vercel serverless functions run TypeScript as **ESM**
+### 2. Vercel serverless functions: ESM vs CJS depends on nearest `package.json`
 
-- `require()` is undefined — use `createRequire(import.meta.url)` if you must do CJS interop
+Vercel's `@vercel/node` builder looks at the **nearest `package.json`** to the function file to decide CJS vs ESM. The root `package.json` has no `"type"` field → defaults to CJS. So `api/index.ts` (which uses `import.meta.url` + `createRequire`) MUST live next to an `api/package.json` with `{"type": "module"}`. Without it: `SyntaxError: Cannot use import statement outside a module` → `FUNCTION_INVOCATION_FAILED`. See pitfall #5 for the full symptom.
+
+Other facts about the function runtime:
+- `require()` is undefined in ESM context — use `createRequire(import.meta.url)` if you must do CJS interop
 - `process.exit(N)` at module-load time silently kills the worker → `FUNCTION_INVOCATION_FAILED` with no log
 - Static `import "../src/..."` from `api/*.ts` is **NOT bundled** by `@vercel/node` — the dep tree above `/api/` is left as runtime imports → `ERR_MODULE_NOT_FOUND` at runtime
 - TypeScript path aliases (`@/api/*`) are **not rewritten** during compile — they reach runtime as literal `require("@/api/env")` and fail to resolve
@@ -143,13 +146,16 @@ Always:
    - tsc-alias rewrites `@/api/...` → relative `./...` in the compiled output
 2. `vercel.json` has `functions["api/index.ts"].includeFiles: "compiled/**"` so the compiled tree ships with the function bundle
 3. `api/index.ts` uses `createRequire(import.meta.url)` + lazy load to require `../compiled/api/api/server.js` inside an ESM handler — wrapped in try/catch so init errors surface as JSON instead of opaque 500s
-4. `compiled/` is gitignored (regenerated each deploy)
+4. `api/package.json` declares `{"type": "module"}` — without this Vercel loads `api/index.js` as CJS and the ESM `import` syntax throws (see pitfall #5)
+5. `compiled/` is gitignored (regenerated each deploy)
 
 Do NOT:
 - Put the Express setup directly in `api/index.ts` — it must stay tiny
 - Try to import `../src/api/server` from `api/*.ts` — it won't bundle
 - Use `process.exit()` anywhere reachable from module load — `src/api/env.ts` validates lazily via a `Proxy` for this reason
 - Put backend output in `dist/` — that's the Vite outputDirectory (static assets). Use `compiled/`
+- Delete `api/package.json` or remove its `"type": "module"` field — breaks the function in production (see pitfall #5)
+- Add `"type": "module"` to the ROOT `package.json` — it'll break `tsx watch`, the dev API, and parts of the build chain. Keep the ESM scope confined to `api/`
 
 ### 4. Authentication flow (single source of truth)
 
@@ -169,8 +175,38 @@ Login form (LoginPage)
 If `/api/auth/me` ever returns a non-401 error, the frontend shows "Failed to load profile". The error is **never** about Supabase Auth itself — it's always one of:
 - Network/CORS (build pointed at wrong origin — see #1)
 - Backend crash on module load (env/process.exit — see #2)
+- Vercel function won't load at all (CJS/ESM mismatch — see #5)
 - Profile row missing for the auth.users id (run seed.sql, or there's an orphan)
 - Profile suspended (status='suspended' → admin can reactivate)
+
+Quick triage:
+- `curl https://ezypm.vercel.app/api/health` returns 500 with `x-vercel-error: FUNCTION_INVOCATION_FAILED` → function itself is broken (#2 or #5), not auth
+- 401 → expected behavior when no/expired token; frontend should redirect to login
+- 403 → profile suspended or RLS denied
+- 500 with our envelope shape `{ ok: false, error: { code: "..." } }` → reaches handler but blows up downstream
+
+### 5. Vercel runtime needs `api/package.json` with `"type": "module"`
+
+**Symptom:** every `/api/*` returns `FUNCTION_INVOCATION_FAILED`; Vercel runtime logs show:
+```
+SyntaxError: Cannot use import statement outside a module
+    at /var/task/api/index.js:4
+    import { createRequire } from "module";
+```
+
+**Root cause:** Vercel's `@vercel/node` builder respects the nearest `package.json`'s `"type"` field. The root `package.json` has no `"type"` (defaults to CJS for the rest of the toolchain — `tsx watch`, vite dev, build scripts). So when Vercel compiles `api/index.ts` → `api/index.js`, it runs the output as CJS by default, but the source uses ESM-only constructs (`import.meta.url`, `createRequire`, `export default`). Node's CJS loader hits the first `import` and throws — function never reaches the handler, no JSON envelope, no Express logs, opaque `FUNCTION_INVOCATION_FAILED`.
+
+**Fix:** A `api/package.json` containing just `{"type": "module"}` confines the ESM scope to the function directory. Vercel sees this nearer to `api/index.js` and loads it as ESM. Root toolchain keeps running as CJS.
+
+Do NOT "fix" this by:
+- Adding `"type": "module"` to root `package.json` — breaks dev API and tsx watch
+- Renaming to `api/index.mts` — Vercel doesn't reliably detect `.mts` as a function entry
+- Rewriting `api/index.ts` as CJS (`module.exports =`) — works but loses the typed `export default handler` and the `import.meta.url` pattern needed by `createRequire`
+
+This is a single-line config that's easy to lose during refactors. Always verify after touching `api/`, `vercel.json`, or `package.json`:
+```bash
+test -f api/package.json && grep -q '"type": "module"' api/package.json && echo OK || echo BROKEN
+```
 
 ## Agent workflow
 
