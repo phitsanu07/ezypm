@@ -71,9 +71,9 @@
   user-select: none;
 }
 
-/* Group cell spanning row-number + name + lead + team + status columns (1-5) */
+/* Group cell spanning row-number + name + lead columns (1-3) */
 .pg-cell-left {
-  grid-column: 1 / 6;
+  grid-column: 1 / 4;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -82,19 +82,20 @@
   overflow: hidden;
 }
 
-/* Badge cell — aligned to PRIORITY column (col 6) */
+/* Badge cell — aligned to TEAM column (col 4), left-justified */
 .pg-cell-badge {
-  grid-column: 6 / 7;
+  grid-column: 4 / 5;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   padding-right: 8px;
   min-width: 0;
   overflow: hidden;
 }
 
-/* Stats cell — spans due + progress + tags + quarter (cols 7-10) */
+/* Stats cell — spans status + priority + due + progress + tags + quarter (cols 5-10) */
 .pg-cell-stats {
-  grid-column: 7 / 11;
+  grid-column: 5 / 11;
   display: flex;
   align-items: center;
   justify-content: flex-end;
