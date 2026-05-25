@@ -164,70 +164,75 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
       onClick={() => !editing && toggleProject(project.id)}
       role="row"
     >
-      <span
-        className={`project-group-chevron${expanded ? " expanded" : ""}`}
-        aria-hidden
-      >
-        ▶
-      </span>
-      <span
-        className="project-group-icon"
-        style={{ background: project.color + "33", color: project.color }}
-      >
-        {project.icon}
-      </span>
+      <div className="pg-cell-left">
+        <span
+          className={`project-group-chevron${expanded ? " expanded" : ""}`}
+          aria-hidden
+        >
+          ▶
+        </span>
+        <span
+          className="project-group-icon"
+          style={{ background: project.color + "33", color: project.color }}
+        >
+          {project.icon}
+        </span>
 
-      {editing ? (
-        <input
-          ref={inputRef}
-          className="project-group-name-input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={onInputKey}
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Project name"
-        />
-      ) : (
-        <>
-          <span className="project-group-name">{project.name}</span>
-          {project.nameTh && (
-            <span style={{ fontSize: "11.5px", color: "var(--ink-3)" }}>
-              {project.nameTh}
-            </span>
-          )}
-          {!readOnly && (
-            <button
-              type="button"
-              className="project-group-rename"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditing(true);
-              }}
-              aria-label="Rename project"
-              title="แก้ชื่อโปรเจกต์ / Rename"
-            >
-              ✎
-            </button>
-          )}
-          <button
-            type="button"
-            className={`project-type-badge ${project.type}`}
-            disabled={readOnly}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (readOnly) return;
-              void toggleType();
-            }}
-            aria-label={`Project type: ${project.type === "year_plan" ? "Year Plan" : "Ad-hoc"}`}
-            title="คลิกเพื่อสลับ Year Plan / Ad-hoc"
-          >
-            {project.type === "ad_hoc" ? "⚡ Ad-hoc" : "◷ Year Plan"}
-          </button>
-        </>
-      )}
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="project-group-name-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={onInputKey}
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Project name"
+          />
+        ) : (
+          <>
+            <span className="project-group-name">{project.name}</span>
+            {project.nameTh && (
+              <span style={{ fontSize: "11.5px", color: "var(--ink-3)" }}>
+                {project.nameTh}
+              </span>
+            )}
+            {!readOnly && (
+              <button
+                type="button"
+                className="project-group-rename"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditing(true);
+                }}
+                aria-label="Rename project"
+                title="แก้ชื่อโปรเจกต์ / Rename"
+              >
+                ✎
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
-      <div className="project-group-stats">
+      <div className="pg-cell-badge">
+        <button
+          type="button"
+          className={`project-type-badge ${project.type}`}
+          disabled={readOnly}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (readOnly) return;
+            void toggleType();
+          }}
+          aria-label={`Project type: ${project.type === "year_plan" ? "Year Plan" : "Ad-hoc"}`}
+          title="คลิกเพื่อสลับ Year Plan / Ad-hoc"
+        >
+          {project.type === "ad_hoc" ? "⚡ Ad-hoc" : "◷ Year Plan"}
+        </button>
+      </div>
+
+      <div className="pg-cell-stats">
         <span className="project-group-stat">
           <span style={{ fontWeight: 600, color: "var(--ink-2)" }}>
             {subs.length}
@@ -257,7 +262,7 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
 
       {!readOnly && (
         <div
-          className="project-group-actions"
+          className="pg-cell-actions project-group-actions"
           style={{ position: "relative" }}
           onClick={(e) => e.stopPropagation()}
         >

@@ -60,16 +60,56 @@
   top: 40px;
   z-index: 1;
   grid-column: 1 / -1;
-  display: flex;
+  display: grid;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
   height: 36px;
   background: #F6F4ED;
   border-bottom: 1px solid var(--line-2);
   border-top: 1px solid var(--line-2);
   cursor: pointer;
   user-select: none;
+}
+
+/* Group cell spanning row-number + name + lead + team + status columns (1-5) */
+.pg-cell-left {
+  grid-column: 1 / 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Badge cell — aligned to PRIORITY column (col 6) */
+.pg-cell-badge {
+  grid-column: 6 / 7;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Stats cell — spans due + progress + tags + quarter (cols 7-10) */
+.pg-cell-stats {
+  grid-column: 7 / 11;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-right: 8px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+/* Actions cell — last column (col 11) */
+.pg-cell-actions {
+  grid-column: 11 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .project-group-chevron {
@@ -149,7 +189,6 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: 10px;
   padding: 3px 9px;
   border-radius: 999px;
   font-size: 10.5px;
@@ -180,15 +219,6 @@
 .project-type-badge:disabled {
   cursor: default;
   opacity: 0.7;
-}
-
-.project-group-stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--ink-3);
 }
 
 .project-group-stat {
