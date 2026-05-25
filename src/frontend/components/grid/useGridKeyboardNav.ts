@@ -53,6 +53,17 @@ export function useGridKeyboardNav({
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (editingCell) return;
 
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
       const rowIds = getVisibleRowIds(payload, expandedProjects);
       if (rowIds.length === 0) return;
 
