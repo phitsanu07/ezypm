@@ -26,7 +26,7 @@ export const CreateSubProjectSchema = z
       .nullable()
       .optional(),
     progress: z.number().int().min(0).max(100).optional(),
-    quarter: z.string().max(20).nullable().optional(),
+    quarter: z.string().max(100).nullable().optional(),
     tags: z.array(z.string().min(1).max(50)).optional(),
   })
   .strict();
@@ -50,7 +50,7 @@ export const UpdateSubProjectSchema = z
       .nullable()
       .optional(),
     progress: z.number().int().min(0).max(100).optional(),
-    quarter: z.string().max(20).nullable().optional(),
+    quarter: z.string().max(100).nullable().optional(),
     tags: z.array(z.string().min(1).max(50)).optional(),
     position: z.number().int().min(1).optional(),
   })
