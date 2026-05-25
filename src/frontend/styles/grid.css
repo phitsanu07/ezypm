@@ -105,12 +105,16 @@
   color: var(--ink-3);
 }
 
-/* Actions cell — last column (col 11) */
+/* Actions cell — pinned to the right edge of the row, escapes subgrid layout
+   to guarantee placement even when intermediate cells misbehave */
 .pg-cell-actions {
-  grid-column: 11 / -1;
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  justify-content: center;
+  z-index: 2;
 }
 
 .project-group-chevron {
