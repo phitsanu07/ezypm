@@ -229,14 +229,9 @@
 }
 
 .project-group-actions {
-  opacity: 0.55;
   display: flex;
   gap: 2px;
-  transition: opacity 0.1s;
 }
-.project-group-row:hover .project-group-actions { opacity: 1; }
-.project-group-actions:hover,
-.project-group-actions:focus-within { opacity: 1; }
 
 /* ---------- SUB-PROJECT ROW ---------- */
 .row {
