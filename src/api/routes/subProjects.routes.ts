@@ -541,29 +541,31 @@ router.put(
           ...allTargetSubs.slice(insertAt),
         ];
 
-        // Single round-trip upsert — Postgres executes one INSERT...ON CONFLICT
-        // statement atomically; either all rows commit or none do, so the
-        // segment is never left half-renumbered if the function aborts.
-        const rows = renumbered
+        // Parallel UPDATEs (one per row). Avoid .upsert() — its INSERT path
+        // validates NOT NULL columns (name, status, …) before deciding to
+        // take the ON CONFLICT branch, causing 500s when the dragged segment
+        // is large and the renumber spans many rows.
+        const updates = renumbered
           .map((entry, i) =>
             entry
-              ? {
-                  id: entry.id,
-                  position: (i + 1) * 100,
-                  project_id: body.targetProjectId,
-                }
+              ? supabaseAdmin
+                  .from("sub_projects")
+                  .update({
+                    position: (i + 1) * 100,
+                    project_id: body.targetProjectId,
+                  })
+                  .eq("id", entry.id)
               : null,
           )
-          .filter((r): r is NonNullable<typeof r> => r !== null);
+          .filter((q): q is NonNullable<typeof q> => q !== null);
 
-        const { error: renumberErr } = await supabaseAdmin
-          .from("sub_projects")
-          .upsert(rows, { onConflict: "id" });
-
-        if (renumberErr) {
+        const results = await Promise.all(updates);
+        const failed = results.find((r) => r.error);
+        if (failed?.error) {
+          console.error("[reorder] renumber failed:", failed.error);
           throw new ApiError(
             "INTERNAL_ERROR",
-            `Failed to renumber: ${renumberErr.message}`,
+            `Failed to renumber: ${failed.error.message}`,
             500,
           );
         }
