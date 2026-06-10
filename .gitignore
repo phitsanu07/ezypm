@@ -1,4 +1,5 @@
 node_modules/
+.venv/
 dist/
 build/
 compiled/
@@ -20,8 +21,11 @@ project management-handoff*.zip
 .env.local
 .env.*.local
 
-# claude (local agent/session state)
-.claude/
+# claude — track shared agents/commands/settings, ignore local state
+.claude/*
+!.claude/agents/
+!.claude/commands/
+!.claude/settings.json
 
 # vercel
 .vercel/
