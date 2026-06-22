@@ -85,14 +85,6 @@
   overflow: hidden;
 }
 
-/* Badge (Year Plan / Ad-hoc) */
-.pg-cell-badge {
-  display: flex;
-  align-items: center;
-  margin-left: 12px;
-  flex: 0 0 auto;
-}
-
 /* Stats — grows to push actions to the right; right-aligned content */
 .pg-cell-stats {
   display: flex;
@@ -186,38 +178,39 @@
   color: var(--accent);
 }
 
-.project-type-badge {
+/* Type icon (Year Plan / Ad-hoc) — sits in front of the project name */
+.project-type-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
   border: 1px solid;
   cursor: pointer;
   font-family: inherit;
   transition: background 0.12s, border-color 0.12s, opacity 0.12s;
-  white-space: nowrap;
 }
-.project-type-badge.year_plan {
+.project-type-icon.year_plan {
   background: #E4EEFF;
   color: #1A56C5;
   border-color: #B7D0FF;
 }
-.project-type-badge.year_plan:hover:not(:disabled) {
+.project-type-icon.year_plan:hover:not(:disabled) {
   background: #D2E2FF;
 }
-.project-type-badge.ad_hoc {
+.project-type-icon.ad_hoc {
   background: #FFE9D6;
   color: #9A4400;
   border-color: #FFCFA8;
 }
-.project-type-badge.ad_hoc:hover:not(:disabled) {
+.project-type-icon.ad_hoc:hover:not(:disabled) {
   background: #FFDABB;
 }
-.project-type-badge:disabled {
+.project-type-icon:disabled {
   cursor: default;
   opacity: 0.7;
 }

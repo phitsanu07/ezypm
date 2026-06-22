@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type MouseEvent } from "react";
 import type { SubProjectWithRelations } from "@/types";
-import { STATUS_OPTIONS } from "@/types";
+import { STATUS_OPTIONS, statusProgressBand } from "@/types";
 import { usePortfolioStore } from "@/frontend/store/usePortfolioStore";
 import { Chip } from "@/frontend/components/ui/Chip";
 import { Popover } from "@/frontend/components/cells/Popover";
@@ -9,10 +9,18 @@ interface StatusCellProps {
   sub: SubProjectWithRelations;
   isSelected: boolean;
   isEditing: boolean;
+  readOnly: boolean;
   onDoneEditing(): void;
 }
 
-export function StatusCell({ sub, isEditing, onDoneEditing }: StatusCellProps) {
+const STEP = 5;
+
+export function StatusCell({
+  sub,
+  isEditing,
+  readOnly,
+  onDoneEditing,
+}: StatusCellProps) {
   const patch = usePortfolioStore((s) => s.patchSubProject);
   const cellRef = useRef<HTMLDivElement>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -37,8 +45,23 @@ export function StatusCell({ sub, isEditing, onDoneEditing }: StatusCellProps) {
   const current = STATUS_OPTIONS.find((o) => o.id === sub.status);
   const open = isEditing && anchorRect !== null;
 
+  // Intra-stage progress: nudge % within the current status's band without
+  // changing the status. We patch BOTH status (unchanged) + progress so the
+  // backend keeps the chosen status instead of re-deriving it from progress.
+  const { min, max } = statusProgressBand(sub.status);
+  const cur = Math.min(max, Math.max(min, sub.progress));
+  const canDec = !readOnly && cur > min;
+  const canInc = !readOnly && cur < max;
+
+  function nudge(e: MouseEvent, delta: number) {
+    e.stopPropagation();
+    const next = Math.min(max, Math.max(min, cur + delta));
+    if (next === sub.progress) return;
+    void patch(sub.id, { status: sub.status, progress: next });
+  }
+
   return (
-    <div ref={cellRef} style={{ width: "100%" }}>
+    <div ref={cellRef} className="status-cell-inner">
       {current && (
         <Chip
           label={current.label}
@@ -46,6 +69,33 @@ export function StatusCell({ sub, isEditing, onDoneEditing }: StatusCellProps) {
           fg={current.fg}
           dot={current.dot}
         />
+      )}
+      {!readOnly && max > min && (
+        <span
+          className="status-pct-stepper"
+          onClick={(e) => e.stopPropagation()}
+          title={`ปรับ % ภายในขั้น ${current?.label ?? ""} (${min}–${max}%)`}
+        >
+          <button
+            type="button"
+            className="status-pct-btn"
+            onClick={(e) => nudge(e, -STEP)}
+            disabled={!canDec}
+            aria-label="Decrease progress within stage"
+          >
+            −
+          </button>
+          <span className="status-pct-val">{cur}%</span>
+          <button
+            type="button"
+            className="status-pct-btn"
+            onClick={(e) => nudge(e, STEP)}
+            disabled={!canInc}
+            aria-label="Increase progress within stage"
+          >
+            +
+          </button>
+        </span>
       )}
       {open && (
         <Popover anchorRect={anchorRect} onClose={close}>

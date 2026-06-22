@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { TagFilter, StatusFilter } from "@/frontend/lib/projectFilter";
 
 type View = "portfolio" | "calendar" | "reports";
 
@@ -21,12 +22,16 @@ interface PersistedGridUI {
 const STORAGE_KEY = "gridwork.gridUI.v1";
 const COL_WIDTHS_KEY = "gridwork.columnWidths.v1";
 
+// Columns temporarily hidden from the grid. Remove an id here to bring the
+// column back — header, body cells and the grid template all read from this.
+const HIDDEN_COLUMNS = new Set<string>(["due"]);
+
 const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   num: 40,
   name: 220,
   lead: 120,
   team: 120,
-  status: 120,
+  status: 168,
   priority: 100,
   due: 100,
   progress: 130,
@@ -72,6 +77,10 @@ interface GridUIState {
   selectedCell: SelectedCell | null;
   openPopover: OpenPopover | null;
   columnWidths: Record<string, number>;
+  tagFilter: TagFilter;
+  statusFilter: StatusFilter;
+  setTagFilter(f: TagFilter): void;
+  setStatusFilter(f: StatusFilter): void;
   setView(v: View): void;
   toggleProject(projectId: string): void;
   selectCell(c: SelectedCell | null): void;
@@ -86,6 +95,16 @@ export const useGridUIStore = create<GridUIState>()((set, get) => ({
   selectedCell: null,
   openPopover: null,
   columnWidths: initial.columnWidths,
+  tagFilter: "all",
+  statusFilter: "all",
+
+  setTagFilter(f) {
+    set({ tagFilter: f });
+  },
+
+  setStatusFilter(f) {
+    set({ statusFilter: f });
+  },
 
   setView(v) {
     set({ view: v });
@@ -137,4 +156,4 @@ export const useGridUIStore = create<GridUIState>()((set, get) => ({
   },
 }));
 
-export { DEFAULT_COLUMN_WIDTHS };
+export { DEFAULT_COLUMN_WIDTHS, HIDDEN_COLUMNS };

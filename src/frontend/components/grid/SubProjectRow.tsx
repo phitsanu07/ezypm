@@ -3,7 +3,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useShallow } from "zustand/react/shallow";
 import type { SubProjectWithRelations, Profile } from "@/types";
-import { useGridUIStore, DEFAULT_COLUMN_WIDTHS } from "@/frontend/store/useGridUIStore";
+import {
+  useGridUIStore,
+  DEFAULT_COLUMN_WIDTHS,
+  HIDDEN_COLUMNS,
+} from "@/frontend/store/useGridUIStore";
 import { CellShell } from "@/frontend/components/cells/CellShell";
 import { NameCell } from "@/frontend/components/cells/NameCell";
 import { AssigneeCell } from "@/frontend/components/cells/AssigneeCell";
@@ -178,6 +182,7 @@ function SubProjectRowImpl({
           sub={sub}
           isSelected={isSelected("status")}
           isEditing={isEditing("status")}
+          readOnly={readOnly}
           onDoneEditing={onDoneEditing}
         />
       </CellShell>
@@ -205,24 +210,26 @@ function SubProjectRowImpl({
         />
       </CellShell>
 
-      <CellShell
-        columnId="due"
-        subProjectId={sub.id}
-        isSelected={isSelected("due")}
-        isEditing={isEditing("due")}
-        readOnly={readOnly}
-        style={{ width: cellWidth("due"), minWidth: cellWidth("due") }}
-        onClick={() => onCellClick(sub.id, "due")}
-        onDoubleClick={() => onCellDoubleClick(sub.id, "due")}
-        ariaColIndex={7}
-      >
-        <DateCell
-          sub={sub}
+      {!HIDDEN_COLUMNS.has("due") && (
+        <CellShell
+          columnId="due"
+          subProjectId={sub.id}
           isSelected={isSelected("due")}
           isEditing={isEditing("due")}
-          onDoneEditing={onDoneEditing}
-        />
-      </CellShell>
+          readOnly={readOnly}
+          style={{ width: cellWidth("due"), minWidth: cellWidth("due") }}
+          onClick={() => onCellClick(sub.id, "due")}
+          onDoubleClick={() => onCellDoubleClick(sub.id, "due")}
+          ariaColIndex={7}
+        >
+          <DateCell
+            sub={sub}
+            isSelected={isSelected("due")}
+            isEditing={isEditing("due")}
+            onDoneEditing={onDoneEditing}
+          />
+        </CellShell>
+      )}
 
       <CellShell
         columnId="progress"

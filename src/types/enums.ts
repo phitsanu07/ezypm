@@ -56,6 +56,24 @@ export const STATUS_ORDER_VAL: Record<SubProjectStatus, number> = {
   go_live: 5,
 };
 
+// The progress band a status occupies: from its own base up to the next
+// status's base (go_live caps at 100). Lets the UI nudge intra-stage progress
+// — e.g. "in dev (50) but 65% of the way toward test (70)" — without the
+// status changing.
+export function statusProgressBand(status: SubProjectStatus): {
+  min: number;
+  max: number;
+} {
+  const order = STATUS_ORDER_VAL[status];
+  const next = SUB_PROJECT_STATUS_VALUES[order + 1];
+  return {
+    min: STATUS_PROGRESS[status],
+    // Cap 1% short of the next status's base so the stage never reaches the
+    // next stage's threshold (e.g. dev tops out at 69, not test's 70).
+    max: next ? STATUS_PROGRESS[next] - 1 : 100,
+  };
+}
+
 // Reverse-derive status from a manually edited progress %
 export function deriveStatusFromProgress(pct: number): SubProjectStatus {
   if (pct >= 100) return "go_live";

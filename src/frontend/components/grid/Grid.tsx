@@ -18,6 +18,7 @@ import type { PortfolioPayload, Profile } from "@/types";
 import {
   useGridUIStore,
   DEFAULT_COLUMN_WIDTHS,
+  HIDDEN_COLUMNS,
 } from "@/frontend/store/useGridUIStore";
 import { usePortfolioStore } from "@/frontend/store/usePortfolioStore";
 import { GridHeader } from "@/frontend/components/grid/GridHeader";
@@ -25,19 +26,23 @@ import { ProjectGroupRow } from "@/frontend/components/grid/ProjectGroupRow";
 import { SubProjectRow } from "@/frontend/components/grid/SubProjectRow";
 import { AddRow } from "@/frontend/components/grid/AddRow";
 import { useGridKeyboardNav } from "@/frontend/components/grid/useGridKeyboardNav";
+import { filterProjects } from "@/frontend/lib/projectFilter";
 
 interface GridProps {
   payload: PortfolioPayload;
   readOnly: boolean;
 }
 
-const COLUMN_IDS = ["name", "lead", "team", "status", "priority", "due", "progress", "tags", "quarter"];
+const ALL_COLUMN_IDS = ["name", "lead", "team", "status", "priority", "due", "progress", "tags", "quarter"];
+const COLUMN_IDS = ALL_COLUMN_IDS.filter((id) => !HIDDEN_COLUMNS.has(id));
 
 export function Grid({ payload, readOnly }: GridProps) {
   const selectedCell = useGridUIStore((s) => s.selectedCell);
   const selectCell = useGridUIStore((s) => s.selectCell);
   const expandedProjects = useGridUIStore((s) => s.expandedProjects);
   const columnWidths = useGridUIStore((s) => s.columnWidths);
+  const tagFilter = useGridUIStore((s) => s.tagFilter);
+  const statusFilter = useGridUIStore((s) => s.statusFilter);
 
   const [editingCell, setEditingCell] = useState<{
     subProjectId: string;
@@ -133,6 +138,13 @@ export function Grid({ payload, readOnly }: GridProps) {
 
   const members: Profile[] = payload.members;
 
+  const visibleProjects = filterProjects(
+    payload.projects,
+    tagFilter,
+    statusFilter,
+  );
+  const filtersActive = tagFilter !== "all" || statusFilter !== "all";
+
   let rowNumber = 0;
   let rowIndex = 2;
 
@@ -155,7 +167,7 @@ export function Grid({ payload, readOnly }: GridProps) {
             <GridHeader numWidth={numWidth} />
           </div>
 
-          {payload.projects.map((project) => {
+          {visibleProjects.map((project) => {
             const expanded = expandedProjects[project.id] !== false;
             const projectRowIndex = rowIndex++;
 
@@ -224,6 +236,13 @@ export function Grid({ payload, readOnly }: GridProps) {
             return rows;
           })}
         </div>
+
+        {visibleProjects.length === 0 && filtersActive && (
+          <div className="grid-no-match">
+            ไม่มีโปรเจกต์ที่ตรงกับ filter ที่เลือก
+            <span>No projects match the selected filters.</span>
+          </div>
+        )}
       </div>
     </DndContext>
   );

@@ -1,12 +1,16 @@
 import { useRef } from "react";
-import { useGridUIStore, DEFAULT_COLUMN_WIDTHS } from "@/frontend/store/useGridUIStore";
+import {
+  useGridUIStore,
+  DEFAULT_COLUMN_WIDTHS,
+  HIDDEN_COLUMNS,
+} from "@/frontend/store/useGridUIStore";
 
 interface ColumnDef {
   id: string;
   label: string;
 }
 
-const COLUMNS: ColumnDef[] = [
+const ALL_COLUMNS: ColumnDef[] = [
   { id: "name", label: "Sub-project" },
   { id: "lead", label: "Assignee" },
   { id: "team", label: "Team" },
@@ -17,6 +21,8 @@ const COLUMNS: ColumnDef[] = [
   { id: "tags", label: "Tags" },
   { id: "quarter", label: "Note" },
 ];
+
+const COLUMNS = ALL_COLUMNS.filter((col) => !HIDDEN_COLUMNS.has(col.id));
 
 interface GridHeaderProps {
   numWidth: number;

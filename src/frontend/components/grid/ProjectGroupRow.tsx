@@ -179,6 +179,25 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
           {project.icon}
         </span>
 
+        <button
+          type="button"
+          className={`project-type-icon ${project.type}`}
+          disabled={readOnly}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (readOnly) return;
+            void toggleType();
+          }}
+          aria-label={`Project type: ${project.type === "year_plan" ? "Year Plan" : "Ad-hoc"}`}
+          title={
+            project.type === "year_plan"
+              ? "Year Plan — คลิกเพื่อสลับเป็น Ad-hoc"
+              : "Ad-hoc — คลิกเพื่อสลับเป็น Year Plan"
+          }
+        >
+          {project.type === "ad_hoc" ? "⚡" : "◷"}
+        </button>
+
         {editing ? (
           <input
             ref={inputRef}
@@ -219,23 +238,6 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
             )}
           </>
         )}
-      </div>
-
-      <div className="pg-cell-badge">
-        <button
-          type="button"
-          className={`project-type-badge ${project.type}`}
-          disabled={readOnly}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (readOnly) return;
-            void toggleType();
-          }}
-          aria-label={`Project type: ${project.type === "year_plan" ? "Year Plan" : "Ad-hoc"}`}
-          title="คลิกเพื่อสลับ Year Plan / Ad-hoc"
-        >
-          {project.type === "ad_hoc" ? "⚡ Ad-hoc" : "◷ Year Plan"}
-        </button>
       </div>
 
       <div className="pg-cell-stats">
