@@ -158,6 +158,8 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
       ? Math.round(subs.reduce((a, s) => a + s.progress, 0) / subs.length)
       : 0;
   const isComplete = subs.length > 0 && avgProgress === 100;
+  // If any sub-project has a Note (quarter field), tint the project icon green.
+  const hasNote = subs.some((s) => (s.quarter ?? "").trim() !== "");
 
   return (
     <div
@@ -174,7 +176,12 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
         </span>
         <span
           className="project-group-icon"
-          style={{ background: project.color + "33", color: project.color }}
+          style={
+            hasNote
+              ? { background: "#3DBE8B22", color: "var(--green)" }
+              : { background: project.color + "33", color: project.color }
+          }
+          title={hasNote ? "มี note ใน sub-project" : undefined}
         >
           {project.icon}
         </span>
