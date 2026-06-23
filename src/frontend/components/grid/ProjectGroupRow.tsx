@@ -4,7 +4,6 @@ import type { ProjectWithSubs } from "@/types";
 import { useGridUIStore } from "@/frontend/store/useGridUIStore";
 import { usePortfolioStore } from "@/frontend/store/usePortfolioStore";
 import { useToastStore } from "@/frontend/store/useToastStore";
-import { isAtRisk } from "@/frontend/lib/atRisk";
 
 interface ProjectGroupRowProps {
   project: ProjectWithSubs;
@@ -152,7 +151,8 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
 
   const subs = project.subProjects;
   const shipped = subs.filter((s) => s.status === "go_live").length;
-  const atRisk = subs.filter((s) => isAtRisk(s)).length;
+  // Anything not yet Go Live is still "on process".
+  const onProcess = subs.length - shipped;
   const avgProgress =
     subs.length > 0
       ? Math.round(subs.reduce((a, s) => a + s.progress, 0) / subs.length)
@@ -251,14 +251,14 @@ export function ProjectGroupRow({ project, readOnly }: ProjectGroupRowProps) {
           <span style={{ fontWeight: 600, color: "var(--green)" }}>
             {shipped}
           </span>
-          <span>shipped</span>
+          <span>completed</span>
         </span>
-        {atRisk > 0 && (
+        {onProcess > 0 && (
           <span className="project-group-stat">
-            <span style={{ fontWeight: 600, color: "var(--red)" }}>
-              {atRisk}
+            <span style={{ fontWeight: 600, color: "var(--amber)" }}>
+              {onProcess}
             </span>
-            <span>at risk</span>
+            <span>on process</span>
           </span>
         )}
         <span className="project-group-stat">

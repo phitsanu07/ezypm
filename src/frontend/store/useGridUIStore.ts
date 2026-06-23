@@ -31,7 +31,7 @@ const DEFAULT_COLUMN_WIDTHS: Record<string, number> = {
   name: 220,
   lead: 120,
   team: 120,
-  status: 168,
+  status: 210,
   priority: 100,
   due: 100,
   progress: 130,

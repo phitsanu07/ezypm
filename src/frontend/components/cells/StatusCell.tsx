@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect, type MouseEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  type ChangeEvent,
+  type PointerEvent,
+} from "react";
 import type { SubProjectWithRelations } from "@/types";
 import { STATUS_OPTIONS, statusProgressBand } from "@/types";
 import { usePortfolioStore } from "@/frontend/store/usePortfolioStore";
@@ -12,8 +18,6 @@ interface StatusCellProps {
   readOnly: boolean;
   onDoneEditing(): void;
 }
-
-const STEP = 5;
 
 export function StatusCell({
   sub,
@@ -45,19 +49,30 @@ export function StatusCell({
   const current = STATUS_OPTIONS.find((o) => o.id === sub.status);
   const open = isEditing && anchorRect !== null;
 
-  // Intra-stage progress: nudge % within the current status's band without
+  // Intra-stage progress: slide % within the current status's band without
   // changing the status. We patch BOTH status (unchanged) + progress so the
   // backend keeps the chosen status instead of re-deriving it from progress.
   const { min, max } = statusProgressBand(sub.status);
-  const cur = Math.min(max, Math.max(min, sub.progress));
-  const canDec = !readOnly && cur > min;
-  const canInc = !readOnly && cur < max;
+  const clampedProgress = Math.min(max, Math.max(min, sub.progress));
+  const [local, setLocal] = useState(clampedProgress);
 
-  function nudge(e: MouseEvent, delta: number) {
+  // Keep the slider in sync with server/optimistic state when not dragging.
+  useEffect(() => {
+    setLocal(clampedProgress);
+  }, [clampedProgress]);
+
+  function onSlide(e: ChangeEvent<HTMLInputElement>) {
+    setLocal(Number(e.target.value));
+  }
+
+  function commitSlide() {
+    if (local === sub.progress) return;
+    void patch(sub.id, { status: sub.status, progress: local });
+  }
+
+  // Stop the cell's click/drag handlers from firing while using the slider.
+  function swallow(e: PointerEvent | React.MouseEvent) {
     e.stopPropagation();
-    const next = Math.min(max, Math.max(min, cur + delta));
-    if (next === sub.progress) return;
-    void patch(sub.id, { status: sub.status, progress: next });
   }
 
   return (
@@ -72,29 +87,25 @@ export function StatusCell({
       )}
       {!readOnly && max > min && (
         <span
-          className="status-pct-stepper"
-          onClick={(e) => e.stopPropagation()}
-          title={`ปรับ % ภายในขั้น ${current?.label ?? ""} (${min}–${max}%)`}
+          className="status-pct-slider"
+          onClick={swallow}
+          onPointerDown={swallow}
+          title={`เลื่อนปรับ % ภายในขั้น ${current?.label ?? ""} (${min}–${max}%)`}
         >
-          <button
-            type="button"
-            className="status-pct-btn"
-            onClick={(e) => nudge(e, -STEP)}
-            disabled={!canDec}
-            aria-label="Decrease progress within stage"
-          >
-            −
-          </button>
-          <span className="status-pct-val">{cur}%</span>
-          <button
-            type="button"
-            className="status-pct-btn"
-            onClick={(e) => nudge(e, STEP)}
-            disabled={!canInc}
-            aria-label="Increase progress within stage"
-          >
-            +
-          </button>
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={1}
+            value={local}
+            onChange={onSlide}
+            onPointerUp={commitSlide}
+            onMouseUp={commitSlide}
+            onTouchEnd={commitSlide}
+            onKeyUp={commitSlide}
+            aria-label={`Adjust progress within ${current?.label ?? "status"} stage`}
+          />
+          <span className="status-pct-val">{local}%</span>
         </span>
       )}
       {open && (
